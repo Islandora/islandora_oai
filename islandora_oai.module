@@ -37,9 +37,10 @@ function islandora_oai_menu() {
  *
  * */
 function islandora_oai_parse_request() {
+    
   //set compression = TRUE
   $compress = TRUE;
-
+    
   //arguments are all GET arguments except for Drupal's q
   if (isset($_GET) && sizeof($_GET) != 1) {
     $args = $_GET;
@@ -57,8 +58,21 @@ function islandora_oai_parse_request() {
   else {
     islandora_oai_add_error('badRequestMethod', $_SERVER['REQUEST_METHOD']);
   }
+  
+  // Argument repeated more than once in the GET request
+  $arglist = explode('&',($_SERVER['QUERY_STRING']));
+  $arglist = (array_count_values($arglist));
+  
+  foreach ($arglist as $key => $value) {
+    if ($value > 1) {
+    islandora_oai_add_error('sameArgument');
+    $repeatarg = TRUE;
+    break;
+    }
+  }
 
   //switch on verb and dispatch requests
+  if (!$repeatarg) {
   switch ($verb) {
 
     case 'GetRecord':
@@ -87,6 +101,7 @@ function islandora_oai_parse_request() {
       islandora_oai_add_error('badVerb', $verb);
   } // End switch
   //respond
+  }
   islandora_oai_respond($xml_response, $args, $compress);
 }
 
@@ -101,16 +116,17 @@ function islandora_oai_parse_request() {
  *   are we sending a compressed response?
  * */
 function islandora_oai_respond($xml_response, $args, $compress=TRUE) {
-
+ 
   $base_url = $GLOBALS['base_url'];
 
   $xslt = variable_get('oai2_xslt', '');
 
   //------ Build XML Definition
-  $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+  $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 
-  if ($xslt && file_exists($xslt))
+  if ($xslt && file_exists($xslt)) {
     $xml .= '<?xml-stylesheet type=\'text/xsl\' href=\'' . $xslt . '\' ?>' . "\n";
+  }
 
   $xml .= '<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -120,15 +136,14 @@ function islandora_oai_respond($xml_response, $args, $compress=TRUE) {
   $response_date = gmstrftime('%Y-%m-%dT%H:%M:%SZ');
 
   $xml .= ' <responseDate>' . $response_date . "</responseDate>\n";
-
-  //------ Generate XMl content
+   //------ Generate XMl content
   $reqattr = '';
   if (is_array($args)) {
     foreach ($args as $key => $val) {
       $reqattr .= ' ' . $key . '="' . htmlspecialchars(stripslashes($val)) . '"';
     }
   }
-
+  
   //set request url
   if (isset($_GET['q'])) {
     $request_url = $base_url . '/' . $_GET['q'];
@@ -136,17 +151,27 @@ function islandora_oai_respond($xml_response, $args, $compress=TRUE) {
   else {
     $request_url = $base_url;
   }
-
-  $xml .= ' <request' . $reqattr . '>' . $request_url . "</request>\n";
+  
+  $errorlist = islandora_oai_get_errors();
+  $verbname = $_GET['verb'];
+   
+  if (strpos($errorlist, $verbname) !== FALSE) {
+    $verbname = '';
+  }
+  else {
+    $verbname = 'verb= "' . $verbname . '"';
+  }
+ 
+  $xml .= ' <request ' . $verbname . '>' . $request_url . "</request>\n";
   $xml .= $xml_response;
-
+  
   //get all errors and add them to the response  
-  if ($error_text = islandora_oai_get_errors()) {
+  if ($error_text = $errorlist) {
     $xml .= $error_text;
   }
 
   $xml .= "</OAI-PMH>\n";
-
+  
   //output XML response
   // we never use compression with errors  
   if ($compress && !$error_text) {
@@ -154,12 +179,13 @@ function islandora_oai_respond($xml_response, $args, $compress=TRUE) {
   }
 
   header('Content-Type: text/xml');
-
+  
   echo $xml;
-
+    
   if ($compress && !$error_text) {
     ob_end_flush();
   }
+  
 }
 
 /**
@@ -168,7 +194,6 @@ function islandora_oai_respond($xml_response, $args, $compress=TRUE) {
  * @return $error_text
  * */
 function islandora_oai_get_errors() {
-
   //get the errors array and convert it to a string
   $errors = islandora_oai_add_error('get');
   $error_text = implode('', $errors);
@@ -177,7 +202,6 @@ function islandora_oai_get_errors() {
   if ($error_text == '') {
     return FALSE;
   }
-
   return $error_text;
 }
 
@@ -224,7 +248,7 @@ function islandora_oai_errors($code, $argument='', $value='') {
   if (!is_array($errors)) {
     $errors = array();
   }
-
+  
   switch ($code) {
 
     //return $errors if this is a get [errors] request
@@ -294,7 +318,7 @@ function islandora_oai_errors($code, $argument='', $value='') {
       break;
 
     case 'sameArgument' :
-      $text = 'Do not use them same argument more than once.';
+      $text = 'Do not use the same argument more than once.';
       $code = 'badArgument';
       break;
 
@@ -365,7 +389,7 @@ function islandora_oai_get_record($args) {
   $query = "PID:" . $identifier;
   $results = islandora_oai_query_solr(0, 'PID', $identifier);
   $record = $results->response->docs[0];
-
+  
   if (!$record->PID) {
     islandora_oai_add_error('idDoesNotExist', '', $identifier);
     return FALSE;
@@ -452,21 +476,16 @@ function _get_random_token() {
  * @return output in XML- Format
  * */
 function islandora_oai_identify($args) {
-
   $base_url = $GLOBALS['base_url'];
   $error_text = islandora_oai_get_errors();
-
+    
   if (!$error_text && (count($args) > 0)) {
-    foreach ($args as $key => $val) {
+      foreach ($args as $key => $val) {
       islandora_oai_add_error('badArgument', $key, $val);
+      return FALSE;
     }
   }
-
-  //----- break and clean up on error
-  if ($error_text) {
-    return FALSE;
-  }
-
+    
   $earliest_datestamp = islandora_oai_get_earliest_datetime();
   $indent = 2;
   $output = " <Identify>\n";
@@ -485,7 +504,7 @@ function islandora_oai_identify($args) {
   // Implementation of unique identifiers for items.
   // See http://www.openarchives.org/OAI/2.0/guidelines-oai-identifier.htm
   // for details
-
+    
   $output .=
       '<description>
     <oai-identifier xmlns="http://www.openarchives.org/OAI/2.0/oai-identifier"
@@ -493,9 +512,9 @@ function islandora_oai_identify($args) {
     xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai-identifier
     http://www.openarchives.org/OAI/2.0/oai-identifier.xsd">
     <scheme>oai</scheme>
-    <repositoryIdentifier>' . str_replace('oai:', '', variable_get('oai2_identifier_prefix', 'oai')) . '</repositoryIdentifier>
+    <repositoryIdentifier>' . variable_get('oai2_repository_identifer', 'drupal-site.org') . '</repositoryIdentifier>
     <delimiter>:</delimiter>
-    <sampleIdentifier>' . variable_get('oai2_identifier_prefix', 'oai') . ':123</sampleIdentifier>
+    <sampleIdentifier>' . 'oai:' . variable_get('oai2_repository_identifier', 'drupal-site.org') . ':123</sampleIdentifier>
     </oai-identifier>
     </description>' . "\n";
 
@@ -573,6 +592,7 @@ function islandora_oai_identify($args) {
 
 
   $output .= " </Identify>\n";
+
   return $output;
 }
 
@@ -596,7 +616,7 @@ function islandora_oai_get_earliest_datetime() {
     module_load_include('inc', 'fedora_repository', 'CollectionClass');
     $collectionClass = new CollectionClass();
     $query_results = $collectionClass->getRelatedItems(NULL, $itql_query);
-
+   
     $xml_set = simplexml_load_string($query_results);
     $result = $xml_set->results->result[0];
     $earliest_datestamp = $result->date;
@@ -624,7 +644,7 @@ function escapePhrase($value) {
  *
  * @return array
  */
-function _islandora_oai_get_membership_array() {
+function _islandora_oai_get_membership_array() { 
   static $mini_cache = array(); //Store in a static variable, to avoid reparsing within the same request.
   
   if (empty($mini_cache)) {
@@ -639,7 +659,6 @@ function _islandora_oai_get_membership_array() {
     }
     //dd($mini_cache, 'Membership mini cache');
   }
-  
   return $mini_cache;
 }
 
@@ -652,6 +671,8 @@ function _islandora_oai_get_membership_array() {
  * @return <type>
  */
 function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $set = NULL, $date_query = NULL) {
+  global $user;
+  
   module_load_include('php', 'islandora_solr_search', 'Solr/Service');
   $requestHandler = variable_get("islandora_solr_search_block_request_handler", "standard");
   $url = variable_get('islandora_solr_search_block_url', 'localhost:8080/solr'); //use the solr client configs
@@ -665,12 +686,13 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
     $query = escapePhrase("$query");
   }
   $query = $field . ':' . $query;
+ 
   $xacml_role = variable_get('oai2_xacml_role_field', 'rels.isViewableByRole');
   $xacml_user = variable_get('oai2_xacml_user_field', 'rels.isViewableByUser');
   $additionalParams = array(
     'qt' => $requestHandler,
     'fl' => '*, PID, ' . variable_get('oai2_date_field', 'fgs.lastModifiedDate'),
-    'fq' => array("($xacml_user:anonymous OR (*:* AND -$xacml_role:[* TO *] AND -$xacml_user:[* TO *]))"),
+    'fq' => array("($xacml_user:anonymous OR $xacml_role:\"anonymous user\" OR (*:* AND -$xacml_role:[* TO *] AND -$xacml_user:[* TO *]))"),
       /**
        * Use an array to help Solr caching...  Different FQs are cached separately. 
        * @see http://wiki.apache.org/solr/CommonQueryParameters#Caching_of_filters
@@ -679,6 +701,7 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
   if ($date_query) {
     $additionalParams['fq'][] = $date_query;
   }
+  
   $excludeContentModels = variable_get('oai2_exclude_content_models', '');
   $excludeContentModels = explode("\n", $excludeContentModels);
   $hasModel = variable_get('oai2_content_model_field', 'rels.hasModel');
@@ -690,25 +713,110 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
   }
   if ($set) {
     $count = 0;
+    
     $sets = explode(':', $set);//oai uses : to separate multiple setSpecs so we had to replace it from the pids earlier
-    $set_fq = array();
-    foreach ($sets as $s) {
-      $s = preg_replace('/_/', ':', $s, 1); //replace the first occurence of _ with a : so we are back to a valid pid
-      $s = trim($s);
-      foreach (_islandora_oai_get_membership_array() as $spec) {
+    $descendants = array();
+    
+    // Get all descendant children (collection and objs) and add to the sets array if not already existing.
+    // Cannot constrain on collections only as name conventions may change across implementations
+    foreach ($sets as $key=>$value) {
+      $value = preg_replace('/_/', ':', $value, 1); //replace the first occurence of _ with a : so we are back to a valid pid
+      $value = trim($value);
+      $sets[$key] = $value;
+            
+      $itql_query = '
+      select $child from <#ri> 
+      where 
+      ( 
+        ( 
+          ( 
+          $child <fedora-model:hasModel> $model 
+          and $model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+          and $parent_model <mulgara:is> <info:fedora/fedora-system:ContentModel-3.0> 
+          ) 
+        or 
+          ( 
+          $child <fedora-model:hasModel> $model 
+          and $model <fedora-model:hasModel> $parent_model 
+          and $parent_model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+          and $child <fedora-model:state> <info:fedora/fedora-system:def/model#Active> 
+          ) 
+        minus $child <http://islandora.ca/ontology/relsext#isViewableByRole> $role 
+        minus $child <http://islandora.ca/ontology/relsext#isViewableByUser> $user 
+        ) 
+      or 
+        ( 
+          ( 
+          $child <fedora-model:hasModel> $model 
+          and $model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+          and $parent_model <mulgara:is> <info:fedora/fedora-system:ContentModel-3.0> 
+          ) 
+        or 
+          ( 
+          $child <fedora-model:hasModel> $model 
+          and $model <fedora-model:hasModel> $parent_model 
+          and $parent_model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+          and $child <fedora-model:state> <info:fedora/fedora-system:def/model#Active> 
+          ) 
+      and 
+          (';
+    foreach ($user->roles as $role) {
+      $itql_query .= '$child <http://islandora.ca/ontology/relsext#isViewableByRole> '."'$role' or ";
+    }
+    $itql_query .= '$child <http://islandora.ca/ontology/relsext#isViewableByUser> '."'$user->name'".')';
+    $itql_query .= ')
+      ) 
+    and 
+      ( 
+      walk 
+        ( 
+          $parent <fedora-rels-ext:isMemberOfCollection><info:fedora/'.$value.'> 
+           and $child <fedora-rels-ext:isMemberOfCollection> $parent 
+        ) 
+      or 
+      walk 
+        ( 
+          $parent <fedora-rels-ext:isMemberOf><info:fedora/'.$value.'> 
+          and $child <fedora-rels-ext:isMemberOf> $parent 
+        ) 
+    )';
+ 
+      
+      module_load_include('inc', 'fedora_repository', 'CollectionClass');
+      $collectionClass = new CollectionClass();
+      $query_results = $collectionClass->getRelatedItems(NULL, $itql_query);
+      $xml_set = simplexml_load_string($query_results);
+        foreach ($xml_set->results->result as $result) {
+        $walkset = $result->child->attributes();
+        $walkset = $walkset['uri'];
+        $walkset = str_replace('info:fedora/', '', $walkset);
+        if (!in_array($walkset, $descendants)) {
+          $descendants[] = $walkset;
+        }
+      }
+   }
+  $sets = $descendants; 
+  $set = str_replace('_', ':', $set);
+  $sets[] = $set;
+  $set_fq = array();
+   
+   foreach ($sets as $s) {
+    foreach (_islandora_oai_get_membership_array() as $spec) {
         list($s_field, $prefix) = $spec;
-        
         $set_fq[] = $s_field . ':"' . $prefix . $s . '"';
       }
     }
     $additionalParams['fq'][] = '(' . implode(' OR ', $set_fq) . ')';
   }
+  
   $limit = variable_get('oai2_max_size', '20');
+ 
   try {
-    $results = $solr->search($query, $start, $limit, $additionalParams);
+    $results = $solr->search($query, $start, $limit, $additionalParams, $solr::METHOD_POST);
   } catch (Exception $e) {
     drupal_set_message(t('error searching @message', array('@message' => $e->getMessage())), 'error');
   }
+ 
   return $results;
 }
 
@@ -723,12 +831,10 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
  * @return output in XML-Format
  * */
 function islandora_oai_list_id_rec($args, $listrec=FALSE) {
-
   $query_args = array();
   $max_records = variable_get('oai2_max_size', '20'); //max records to send in one response
   $expire_seconds = variable_get('oai2_expire_time', '86400');
   $expire_time = gmstrftime('%Y-%m-%dT%TZ', time() + $expire_seconds);
-
 
   //------- handle error and set variables
   foreach ($args as $key => $val) {
@@ -876,18 +982,22 @@ function islandora_oai_list_id_rec($args, $listrec=FALSE) {
 
     $date_query = "$field:[$solr_from TO $solr_until]";
   }
-
+   
   $results = islandora_oai_query_solr($token->deliveredrecords, $field, $query, $set, $date_query);
+  
   $num_rows = (int) $results->response->numFound;
-
   $output = '';
   $response_xml = '';
+  
+ 
+  
+  
   if ($num_rows) {
-    foreach ($results->response->docs as $doc) {
-      $response_xml .= islandora_oai_build_record_response($doc, $listrec, $metadata_prefix);
+     foreach ($results->response->docs as $doc) {
+     $response_xml .= islandora_oai_build_record_response($doc, $listrec, $metadata_prefix);
     }
   }
-
+  
   if ($response_xml != '') {
 
     $output .= ( $listrec) ? " <ListRecords>\n" : " <ListIdentifiers>\n";
@@ -949,18 +1059,22 @@ function islandora_oai_build_record_response($record, $full_record = FALSE, $met
   $output .= '   <header>' . "\n";
   $output .= islandora_oai_xmlformat('oai:' . $repo_id . ':' . $identifier, 'identifier', '', 4);
   $output .= islandora_oai_xmlformat($datestamp, 'datestamp', '', 4);
-
+  
+  
   foreach (_islandora_oai_get_membership_array() as $spec) {
     list($field, $prefix) = $spec;
+    
     foreach ((array)$record->{$field} as $set) {
-      if (empty($prefix) || (!empty($prefix) && strpos($set, $prefix) === 0)) {
+        if (empty($prefix) || (!empty($prefix) && strpos($set, $prefix) === 0)) {
         $set_spec = substr($set, strlen($prefix));
         $set_spec = str_replace(':', '_', $set_spec);
         $output .= islandora_oai_xmlformat($set_spec, 'setSpec', '', 4);
-      }
+        }
     }
   }
+ 
   $output .= '   </header>' . "\n";
+  
 
   //------- List record values
   if ($full_record) {
@@ -1100,12 +1214,26 @@ function islandora_oai_list_metadata_formats($args) {
       case 'identifier':
         $repo_id = variable_get('oai2_repository_identifier', 'drupal-site.org');
         $identifier = str_replace('oai:' . $repo_id . ':', '', $val);
-        $result = db_query("SELECT COUNT(nid) FROM {node} n WHERE n.nid=%d", $val);
-        if (!db_result($result)) {
+        
+        $pidquery = str_replace('_', ':', $identifier);
+        $pidquery = 'info:fedora/'. $pidquery;
+        $itql_query = 'select $object $title from <#ri> 
+        where $object <fedora-model:label> $title and $object <mulgara:is><'. $pidquery .'>';
+        
+        module_load_include('inc', 'fedora_repository', 'CollectionClass');
+        $collectionClass = new CollectionClass();
+        $query_results = $collectionClass->getRelatedItems(NULL, $itql_query);
+        $xml_set = simplexml_load_string($query_results);
+                       
+        if ($xml_set->results->result) {
+        $resultpid = (string)$xml_set->results->result->object->attributes()->uri;   
+        }
+        
+        if (!$resultpid == $pidquery) {
           islandora_oai_add_error('idDoesNotExist', 'identifier', $identifier);
           return FALSE;
         }
-
+        
         break;
 
       case 'metadataPrefix':
@@ -1129,6 +1257,7 @@ function islandora_oai_list_metadata_formats($args) {
   $list_meta_data_formats = '';
 
   $result = db_query("SELECT * FROM {oai2_metadata_formats}  ");
+  
   while ($fmt = db_fetch_object($result)) {
     $list_meta_data_formats .= " <metadataFormat>\n";
     $list_meta_data_formats .= islandora_oai_xmlformat($fmt->metadata_prefix, 'metadataPrefix', '', 3);
@@ -1159,8 +1288,8 @@ function islandora_oai_list_metadata_formats($args) {
  * @return output in XML-Format
  * */
 function islandora_oai_list_sets($args) {
-  global $user;
-
+   global $user;
+  
   foreach ($args as $key => $val) {
 
     switch ($key) {
@@ -1177,33 +1306,50 @@ function islandora_oai_list_sets($args) {
   }
   //this query could be modified to if need as long as it returns a pid and a title
   //if your repository has all collection objects based on one model you could support sets by modifying this query
-  $itql_query = 'select $object $title $model $parent_model $created from <#ri>
-                where
-                ((
-                $object <fedora-model:label> $title
-                and $object <fedora-model:hasModel> $model
-                and $object <fedora-model:createdDate> $created
-                and $model <fedora-model:hasModel> $parent_model
-                and $parent_model <mulgara:is> <info:fedora/islandora:collectionCModel>
-                and $object <fedora-model:state> <info:fedora/fedora-system:def/model#Active>
-                minus $object <http://islandora.ca/ontology/relsext#isViewableByRole> $role
-                minus $object <http://islandora.ca/ontology/relsext#isViewableByUser> $user
-                ) or (
-                $object <fedora-model:label> $title
-                and $object <fedora-model:hasModel> $model
-                and $object <fedora-model:createdDate> $created
-                and $model <fedora-model:hasModel> $parent_model
-                and $parent_model <mulgara:is> <info:fedora/islandora:collectionCModel>
-                and $object <fedora-model:state> <info:fedora/fedora-system:def/model#Active>
-                and (';
-  foreach ($user->roles as $role) {
-    $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByRole> '."'$role' or ";
-  }
-  $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByUser> '."'$user->name'".')';
-  $itql_query .= '))
-                  minus $model <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0>
-                  minus $parent_model <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0>
-                  order by $title';
+  $itql_query = 'select $object $title $model $parent_model $created from <#ri> where 
+    (
+      (
+        ( 
+          $object <fedora-model:hasModel> $model 
+          and $model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+          and $parent_model <mulgara:is> <info:fedora/fedora-system:ContentModel-3.0> 
+        ) 
+      or 
+        ( 
+          $object <fedora-model:hasModel> $model 
+          and $model <fedora-model:hasModel> $parent_model 
+          and $parent_model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+          and $object <fedora-model:state> <info:fedora/fedora-system:def/model#Active> 
+        ) 
+      minus $object <http://islandora.ca/ontology/relsext#isViewableByRole> $role 
+      minus $object <http://islandora.ca/ontology/relsext#isViewableByUser> $user 
+    ) 
+    or 
+    ( 
+      ( 
+        $object <fedora-model:hasModel> $model 
+        and $model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+        and $parent_model <mulgara:is> <info:fedora/fedora-system:ContentModel-3.0> 
+      ) 
+      or 
+        ( 
+          $object <fedora-model:hasModel> $model 
+          and $model <fedora-model:hasModel> $parent_model 
+          and $parent_model <mulgara:is> <info:fedora/islandora:collectionCModel> 
+          and $object <fedora-model:state> <info:fedora/fedora-system:def/model#Active> 
+        ) 
+      and (';
+      foreach ($user->roles as $role) {
+        $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByRole> '."'$role' or ";
+      }
+      $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByUser> '."'$user->name'".')';
+      $itql_query .= '
+      )
+  )  
+  and $object <fedora-model:label> $title
+  and $object <fedora-model:createdDate> $created    
+  order by $title';
+    
   module_load_include('inc', 'fedora_repository', 'CollectionClass');
   $collectionClass = new CollectionClass();
   $query_results = $collectionClass->getRelatedItems(NULL, $itql_query);
@@ -1214,7 +1360,7 @@ function islandora_oai_list_sets($args) {
   foreach ($xml_set->results->result as $result) {
     //var_dump($result);exit();
     $pid_namespaces = array(); // explode(' ',variable_get('fedora_pids_allowed', 'default: demo: changeme: Islandora: ilives: '));
-    foreach (explode(' ', trim(variable_get('fedora_pids_allowed', 'default: demo: changeme: Islandora: ilives: ')))as $namespace) {
+    foreach (explode(' ', trim(variable_get('fedora_pids_allowed', 'default: demo: changeme: islandora: ilives: ')))as $namespace) {
       $pid_namespaces[$namespace] = $namespace;
     }
     $a = $result->object->attributes();
@@ -1261,7 +1407,6 @@ function islandora_oai_list_sets($args) {
  *  knows how to remove invalid characters and return an XML string
  * */
 function islandora_oai_xmlstr($string, $charset = 'iso8859-1', $xmlescaped = 'FALSE') {
-
   $xmlstr = stripslashes(trim($string));
 
   $xmlstr = strip_tags($xmlstr);
@@ -1284,6 +1429,7 @@ function islandora_oai_xmlstr($string, $charset = 'iso8859-1', $xmlescaped = 'FA
 function islandora_oai_xmlformat($record, $element, $attr = '', $indent = 0) {
   $xmlescaped = FALSE;
   $charset = 'UTF-8';
+  
   if ($attr != '') {
     $attr = ' ' . $attr;
   }
