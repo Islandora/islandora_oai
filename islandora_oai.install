@@ -10,7 +10,10 @@
  */
 function islandora_oai_install() {
   $result = array();
-
+  
+  $upload_path = file_create_path('islandora_oai_xsls');
+  file_check_directory($upload_path, FILE_CREATE_DIRECTORY); 
+  
   // Create tables.
   drupal_install_schema('islandora_oai');
 
@@ -161,4 +164,12 @@ function islandora_oai_schema() {
 function islandora_oai_uninstall() {
 
   drupal_uninstall_schema('islandora_oai');
+  $upload_path = file_create_path('islandora_oai_xsls');
+  $removal_files = file_scan_directory($upload_path, '.*');
+  
+  foreach ($removal_files as $file) {
+    file_delete($file->filename);
+  }
+  
+  rmdir($upload_path);
 }

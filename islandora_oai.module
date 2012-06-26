@@ -28,7 +28,20 @@ function islandora_oai_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK
   );
-
+  $items['admin/settings/islandora_oai/select'] = array(
+    'page callback' => 'islandora_oai_select_metadata_prefix_js',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/islandora_oai.admin.inc',
+    'access arguments' => array('access administration pages'),
+  );
+  $items['admin/settings/islandora_oai/upload'] = array(
+    'page callback' => 'islandora_oai_upload_js',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/islandora_oai.admin.inc',
+    'access arguments' => array('access administration pages'),
+  );
   return $items;
 }
 
@@ -166,8 +179,8 @@ function islandora_oai_respond($xml_response, $args, $compress=TRUE) {
   $xml .= $xml_response;
   
   //get all errors and add them to the response  
-  if ($error_text = $errorlist) {
-    $xml .= $error_text;
+  if ($errorlist) {
+    $xml .= $errorlist;
   }
 
   $xml .= "</OAI-PMH>\n";
@@ -1081,55 +1094,74 @@ function islandora_oai_build_record_response($record, $full_record = FALSE, $met
     module_load_include('inc', 'fedora_repository', 'api/fedora_item');
     $object = new Fedora_Item($record->PID);
     
-    if(isset($object->datastreams['MODS'])) {
-      $mods = $object->get_datastream_dissemination('MODS');
+    if ($metadata_prefix == 'oai_dc') {
+      $param = variable_get('oai2_metadata_datastream_id_oai_dc', 'MODS');
     }
     else {
-      $mods = NULL;
+      $param = variable_get('oai2_metadata_datastream_id_oai_etdms', 'MODS');
     }
-
-    $dc = NULL;
+      
+    if(isset($object->datastreams[$param])) {
+      $content = $object->get_datastream_dissemination($param);
+    }
+    else {
+      $content = NULL;
+    }
+    $oai_output = NULL;
     
-    //XXX:  Might this best be done via some hook (which defines a transform to DC) and weighting method?  
-    //  That way, you could allow different datastreams to be the source for DC, with some kind of priority
-    //  based on the weight...  Or, weight differently based on content model?  Dunno...
-    //We've got MODS, let's try to transform it to DC...
-    if (!empty($mods)) {
-      //$prefix = 'oai_dc';
-      //$result_metadata = db_query("SELECT * FROM {oai2_metadata_formats} WHERE name='%s' ", $prefix);
-      //get the MODS and then transform to oai_dc
-      //$mods = trim(file_get_contents('/Users/paulpound/Temp Stuff/mods.xml'));
+    if (!empty($content)) {
       $xslt = new XSLTProcessor();
       $XSL = new DOMDocument();
       switch ($metadata_prefix) {
         case 'oai_dc':
-      $file = drupal_get_path('module', 'islandora_oai') . '/xsl/MODS3-22simpleDC.xsl';
+          $file = variable_get('oai2_transform_file_oai_dc', drupal_get_path('module', 'islandora_oai') . '/xsl/MODS3-22simpleDC.xsl');
           break;
         case 'oai_etdms':
-          $file = drupal_get_path('module', 'islandora_oai') . '/xsl/mods_to_etdms.xsl';
+          $file = variable_get('oai2_transform_file_oai_etdms', drupal_get_path('module', 'islandora_oai') . '/xsl/mods_to_etdms.xsl');
           break;
         default:
           $file = drupal_get_path('module', 'islandora_oai') . '/xsl/MODS3-22simpleDC.xsl';
       }
-      $XSL->load($file);
-      $input = new DomDocument();
+      if ($file != 'default') {
+        $XSL->load($file);
+        $input = new DomDocument();
 
-      $didLoadOk = $input->loadXML($mods);
-      if ($didLoadOk) {
-        $xslt->importStylesheet($XSL);
-        $dc = $xslt->transformToXml($input);
+        $didLoadOk = $input->loadXML($content);
+               
+        if ($didLoadOk) {
+          $xslt->importStylesheet($XSL);
+          $oai_output = $xslt->transformToXml($input);
+        }
+        
+        // Required as transform creates another xml version at the top
+        $oai_output = str_replace('<?xml version="1.0"?>', '', $oai_output);
+      }
+      else {
+        $oai_output = $content;
       }
     }
     
-    //No MODS (or it failed transforming); Try to get the DC stream...
-    if (empty($dc) && isset($object->datastreams['DC'])) {
-      $dc = $object->get_datastream_dissemination('DC');
+    // Transformation fails
+    if (empty($oai_output) && isset($object->datastreams[$param])) {
+      watchdog('islandora_oai', t('The pid %pidname failed to transform on the %datastream datastream with the file %file'),
+        array(
+          '%pidname' => $record->PID,
+          '%file' => $file,
+          '%datastream' => $param,
+          ), WATCHDOG_ERROR);
+    }
+    // Datastream doesn't exist
+    elseif (!isset($object->datastreams[$param])) {
+      watchdog('islandora_oai', t("The pid %pidname failed to transform on the %datastream datastream as the datastream doesn't exist"),
+        array(
+          '%pidname' => $record->PID,
+          '%datastream' => $param,
+          ), WATCHDOG_ERROR);
     }
     
-    //If we have some DC, throw it it.
-    if (!empty($dc)) {
+    if (!empty($oai_output)) {
       $output .= '   <metadata>' . "\n";
-      $output .= $dc;
+      $output .= $oai_output;
       $output .= "</metadata>\n";
     }
     $output .= '  </record>' . "\n";
@@ -1447,4 +1479,34 @@ function islandora_oai_xmlformat($record, $element, $attr = '', $indent = 0) {
   else {
     return '';
   }
+}
+
+/**
+ * Hook that retrieves the default xsl files that ship with the OAI module and
+ * scans the specified directory for any files that they have uploaded
+ * 
+ * @return array
+ */
+function islandora_oai_islandora_oai_get_xsl_files() {
+  $files = file_scan_directory(drupal_get_path('module', 'islandora_oai'), '.*\.xslt?$');
+  $transform_options = array();
+  
+  foreach($files as $file) {
+    $transform_options[$file->filename] = $file->basename;
+  }
+  
+  $oai_uploaded_files = array();
+  $upload_path = file_create_path("islandora_oai_xsls");
+  $uploaded_files = file_scan_directory($upload_path, '.*\.xslt?$');
+  
+  foreach ($uploaded_files as $up_file) {
+    $oai_uploaded_files[$up_file->filename] = $up_file->basename;
+  }
+    
+  foreach($oai_uploaded_files as $key => $file) {
+    if (!in_array($file, $transform_options)) {
+      $transform_options[$key] = $file;
+    }
+  }
+  return $transform_options;
 }
