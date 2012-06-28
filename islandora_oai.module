@@ -825,7 +825,7 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
   $limit = variable_get('oai2_max_size', '20');
  
   try {
-    $results = $solr->search($query, $start, $limit, $additionalParams, $solr::METHOD_POST);
+    $results = $solr->search($query, $start, $limit, $additionalParams, Apache_Solr_Service::METHOD_POST);
   } catch (Exception $e) {
     drupal_set_message(t('error searching @message', array('@message' => $e->getMessage())), 'error');
   }
