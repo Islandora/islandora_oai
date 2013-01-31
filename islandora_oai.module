@@ -7,7 +7,6 @@
  *
  */
 
-
 /**
  * Implements hook_menu().
  */
@@ -141,10 +140,10 @@ function islandora_oai_parse_request() {
   //get all errors and add them to the response
   if (count($error_list)) {
     foreach ($error_list as $code => $verb) {
-       $writer->startElement('error');
-       $writer->writeAttribute('code', $code);
-       $writer->text($verb);
-       $writer->endElement();
+      $writer->startElement('error');
+      $writer->writeAttribute('code', $code);
+      $writer->text($verb);
+      $writer->endElement();
     }
   }
   $writer->endDocument();
@@ -452,8 +451,8 @@ function islandora_oai_identify(&$writer, $args) {
 
   // Catch for a bad argument.
   if (count($error_text) > 0 && (count($args) > 0)) {
-      foreach ($args as $key => $val) {
-        islandora_oai_add_error('badArgument', $key, $val);
+    foreach ($args as $key => $val) {
+      islandora_oai_add_error('badArgument', $key, $val);
       return FALSE;
     }
   }
@@ -642,11 +641,11 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
           )
       and
           (';
-    foreach ($user->roles as $role) {
-      $itql_query .= '$child <http://islandora.ca/ontology/relsext#isViewableByRole> ' . "'$role' or ";
-    }
-    $itql_query .= '$child <http://islandora.ca/ontology/relsext#isViewableByUser> ' . "'$user->name'" . ')';
-    $itql_query .= ')
+      foreach ($user->roles as $role) {
+        $itql_query .= '$child <http://islandora.ca/ontology/relsext#isViewableByRole> ' . "'$role' or ";
+      }
+      $itql_query .= '$child <http://islandora.ca/ontology/relsext#isViewableByUser> ' . "'$user->name'" . ')';
+      $itql_query .= ')
       )
     and
       (
@@ -663,25 +662,25 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
         )
     )';
 
-    $connection = islandora_get_tuque_connection();
-    $query_results = $connection->repository->ri->itqlQuery($itql_query);
+      $connection = islandora_get_tuque_connection();
+      $query_results = $connection->repository->ri->itqlQuery($itql_query);
 
-    foreach ($query_results as $result) {
-      $walk_set = $result['child']['uri'];
-      $walk_set = str_replace('info:fedora/', '', $walk_set);
-      if (!in_array($walk_set, $descendants)) {
-        $descendants[] = $walk_set;
+      foreach ($query_results as $result) {
+        $walk_set = $result['child']['uri'];
+        $walk_set = str_replace('info:fedora/', '', $walk_set);
+        if (!in_array($walk_set, $descendants)) {
+          $descendants[] = $walk_set;
+        }
       }
     }
-  }
-  $walked_sets = $descendants;
+    $walked_sets = $descendants;
 
-  $set = str_replace('_', ':', $set);
-  $walked_sets[] = $set;
-  $set_fq = array();
+    $set = str_replace('_', ':', $set);
+    $walked_sets[] = $set;
+    $set_fq = array();
 
-  foreach ($walked_sets as $walk) {
-    foreach (_islandora_oai_get_membership_array() as $spec) {
+    foreach ($walked_sets as $walk) {
+      foreach (_islandora_oai_get_membership_array () as $spec) {
         list($walk_field, $prefix) = $spec;
         $set_fq[] = $walk_field . ':"' . $prefix . $walk . '"';
       }
@@ -891,15 +890,15 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
       $delivered_records = (int) $token->deliveredrecords + $max_records;
 
       db_insert('oai2_tokens')
-        ->fields(array(
-          'id' => $token_string,
-          'deliveredrecords' => $delivered_records,
-          'queryargs' => isset($arg_string) ? $arg_string : NULL,
-          'setargs' => isset($set) ? $set : NULL,
-          'metadata_prefix' => $metadata_prefix,
-          'timestamp' => time(),
-        ))
-        ->execute();
+          ->fields(array(
+            'id' => $token_string,
+            'deliveredrecords' => $delivered_records,
+            'queryargs' => isset($arg_string) ? $arg_string : NULL,
+            'setargs' => isset($set) ? $set : NULL,
+            'metadata_prefix' => $metadata_prefix,
+            'timestamp' => time(),
+          ))
+          ->execute();
 
       $token_xml = islandora_oai_write_token_xml($writer, $num_rows, $token->deliveredrecords, $expire_time, $token_string);
     }
@@ -935,7 +934,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
   $identifier = str_replace(':', '_', $identifier);
   $repo_id = variable_get('oai2_repository_identifier', 'drupal-site.org');
   $last_modified_date = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
-  $date = new DateTime((string) $record->{$last_modified_date},  new DateTimeZone('UTC'));
+  $date = new DateTime((string) $record->{$last_modified_date}, new DateTimeZone('UTC'));
   $date_stamp = $date->format("Y-m-d\TH:i:s\Z");
 
   $output = '';
@@ -947,12 +946,12 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
   $writer->writeElement('identifier', 'oai:' . $repo_id . ':' . $identifier);
   $writer->writeElement('datestamp', $date_stamp);
 
-  foreach (_islandora_oai_get_membership_array() as $spec) {
+  foreach (_islandora_oai_get_membership_array () as $spec) {
     list($field, $prefix) = $spec;
 
     if (isset($record->{$field})) {
       // Need to cast to array such that we can check for multiple collections
-      foreach ((array)$record->{$field} as $set) {
+      foreach ((array) $record->{$field} as $set) {
         $set = str_replace('info:fedora/', '', $set);
         if (empty($prefix) || (!empty($prefix) && strpos($set, $prefix) === 0)) {
           $set_spec = drupal_substr($set, drupal_strlen($prefix));
@@ -963,7 +962,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
     }
   }
 
-   $writer->endElement();
+  $writer->endElement();
 
   // List record values
   if ($full_record) {
@@ -1017,18 +1016,18 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
     // Transformation fails
     if (empty($oai_output) && isset($object[$param])) {
       watchdog('islandora_oai', 'The pid @pidname failed to transform on the @datastream datastream with the file @file',
-        array(
-          '@pidname' => $record->PID,
-          '@file' => $file,
-          '@datastream' => $param,
+          array(
+            '@pidname' => $record->PID,
+            '@file' => $file,
+            '@datastream' => $param,
           ), WATCHDOG_ERROR);
     }
     // Datastream doesn't exist
     elseif (!isset($object[$param])) {
       watchdog('islandora_oai', "The pid @pidname failed to transform on the @datastream datastream as the datastream doesn't exist",
-        array(
-          '@pidname' => $record->PID,
-          '@datastream' => $param,
+          array(
+            '@pidname' => $record->PID,
+            '@datastream' => $param,
           ), WATCHDOG_ERROR);
     }
 
@@ -1059,10 +1058,10 @@ function _islandora_oai_datetime_to_solr_time($datetime) {
   switch ($granularity) {
     case 'YYYY-MM-DD':
       return $datetime . 'T00:00:00Z/DAY';
-    break;
+      break;
     case 'YYYY-MM-DDThh:mm:ssZ':
       return $datetime;
-    break;
+      break;
   }
 }
 
@@ -1105,7 +1104,8 @@ function islandora_oai_write_token_xml($writer, $num_rows, $delivered_records, $
  */
 function islandora_oai_get_token($resumption_token) {
 
-  $token_query = db_query("SELECT * FROM {oai2_tokens} WHERE id= :resumptiontoken LIMIT 0,1", array(':resumptiontoken' => $resumption_token))->fetchObject();;
+  $token_query = db_query("SELECT * FROM {oai2_tokens} WHERE id= :resumptiontoken LIMIT 0,1", array(':resumptiontoken' => $resumption_token))->fetchObject();
+  ;
 
   if ($token_query && $token_query->deliveredrecords) {
     return $token_query;
@@ -1182,7 +1182,7 @@ function islandora_oai_list_metadata_formats(&$writer, $args) {
 
   if (count($list_meta_data_formats) > 0) {
     $writer->startElement('ListMetadataFormats');
-    foreach($list_meta_data_formats as $entry) {
+    foreach ($list_meta_data_formats as $entry) {
       $writer->startElement('metadataFormat');
       $writer->writeElement('metadataPrefix', $entry['metadataPrefix']);
       $writer->writeElement('schema', $entry['schema']);
@@ -1255,11 +1255,11 @@ function islandora_oai_list_sets($writer, $args) {
           and $object <fedora-model:state> <info:fedora/fedora-system:def/model#Active>
         )
       and (';
-      foreach ($user->roles as $role) {
-        $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByRole> ' . "'$role' or ";
-      }
-      $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByUser> ' . "'$user->name'" . ')';
-      $itql_query .= '
+  foreach ($user->roles as $role) {
+    $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByRole> ' . "'$role' or ";
+  }
+  $itql_query .= '$object <http://islandora.ca/ontology/relsext#isViewableByUser> ' . "'$user->name'" . ')';
+  $itql_query .= '
       )
   )
   and $object <fedora-model:label> $title
