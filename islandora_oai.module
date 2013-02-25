@@ -138,7 +138,7 @@ function islandora_oai_parse_request() {
   $error_list = islandora_oai_get_errors();
 
   //get all errors and add them to the response
-  if (count($error_list)) {
+  if ($error_list) {
     foreach ($error_list as $code => $verb) {
       $writer->startElement('error');
       $writer->writeAttribute('code', $code);
@@ -351,15 +351,15 @@ function islandora_oai_get_record(&$writer, $args) {
   }
 
   $results = islandora_oai_query_solr(0, 'PID', $identifier);
-  $record = $results->response->docs[0];
+  $record = $results[0];
 
-  if (!$record->PID) {
+  if (!$record['PID']) {
     islandora_oai_add_error('idDoesNotExist', '', $identifier);
     return FALSE;
   }
 
   $writer->startElement('GetRecord');
-  islandora_oai_build_record_response($writer, $record, TRUE, $metadata_prefix);
+  islandora_oai_build_record_response($writer, $record['solr_doc'], TRUE, $metadata_prefix);
   $writer->endElement();
 }
 
@@ -691,11 +691,10 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
 
   try {
     $query_processor->executeQuery();
-    $solr_results = $query_processor->solrResult;
+    $solr_results = $query_processor->islandoraSolrResult['response']['objects'];
   } catch (Exception $e) {
     drupal_set_message(t('error searching @message', array('@message' => $e->getMessage())), 'error');
   }
-
   return $solr_results;
 }
 
@@ -868,7 +867,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
 
   $results = islandora_oai_query_solr($token->deliveredrecords, $field, $query, $set, $date_query);
 
-  $num_rows = $results->response->numFound;
+  $num_rows = $results['numFound'];
 
   if ($num_rows) {
     if ($list_rec) {
@@ -877,8 +876,8 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
     else {
       $writer->startElement('ListIdentifiers');
     }
-    foreach ($results->response->docs as $doc) {
-      islandora_oai_build_record_response($writer, $doc, $list_rec, $metadata_prefix);
+    foreach ($results['response']['objects'] as $doc) {
+      islandora_oai_build_record_response($writer, $doc['solr_doc'], $list_rec, $metadata_prefix);
     }
 
     if ($num_rows - $token->deliveredrecords > $max_records) {
@@ -930,11 +929,11 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
  *   The metadata prefix we are searching for.
  */
 function islandora_oai_build_record_response(&$writer, $record, $full_record = FALSE, $metadata_prefix = 'oai_dc') {
-  $identifier = $record->PID;
+  $identifier = $record['PID'];
   $identifier = str_replace(':', '_', $identifier);
   $repo_id = variable_get('oai2_repository_identifier', 'drupal-site.org');
   $last_modified_date = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
-  $date = new DateTime((string) $record->{$last_modified_date}, new DateTimeZone('UTC'));
+  $date = new DateTime((string) $record[$last_modified_date], new DateTimeZone('UTC'));
   $date_stamp = $date->format("Y-m-d\TH:i:s\Z");
 
   $output = '';
@@ -966,7 +965,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
 
   // List record values
   if ($full_record) {
-    $object = islandora_object_load($record->PID);
+    $object = islandora_object_load($record['PID']);
 
     if ($metadata_prefix == 'oai_dc') {
       $param = variable_get('oai2_metadata_datastream_id_oai_dc', 'MODS');
@@ -1017,7 +1016,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
     if (empty($oai_output) && isset($object[$param])) {
       watchdog('islandora_oai', 'The pid @pidname failed to transform on the @datastream datastream with the file @file',
           array(
-            '@pidname' => $record->PID,
+            '@pidname' => $record['PID'],
             '@file' => $file,
             '@datastream' => $param,
           ), WATCHDOG_ERROR);
@@ -1026,7 +1025,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
     elseif (!isset($object[$param])) {
       watchdog('islandora_oai', "The pid @pidname failed to transform on the @datastream datastream as the datastream doesn't exist",
           array(
-            '@pidname' => $record->PID,
+            '@pidname' => $record['PID'],
             '@datastream' => $param,
           ), WATCHDOG_ERROR);
     }
