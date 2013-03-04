@@ -359,7 +359,7 @@ function islandora_oai_get_record(&$writer, $args) {
   }
 
   $writer->startElement('GetRecord');
-  islandora_oai_build_record_response($writer, $record['solr_doc'], TRUE, $metadata_prefix);
+  islandora_oai_build_record_response($writer, $record, TRUE, $metadata_prefix);
   $writer->endElement();
 }
 
@@ -876,8 +876,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
       $writer->startElement('ListIdentifiers');
     }
     foreach ($results['objects'] as $doc) {
-      dd($doc);
-      islandora_oai_build_record_response($writer, $doc['solr_doc'], $list_rec, $metadata_prefix);
+      islandora_oai_build_record_response($writer, $doc, $list_rec, $metadata_prefix);
     }
 
     if ($num_rows - $token->deliveredrecords > $max_records) {
@@ -932,8 +931,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
   $identifier = $record['PID'];
   $identifier = str_replace(':', '_', $identifier);
   $repo_id = variable_get('oai2_repository_identifier', 'drupal-site.org');
-  $last_modified_date = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
-  $date = new DateTime((string) $record[$last_modified_date], new DateTimeZone('UTC'));
+  $date = new DateTime((string) $record['lastModifiedDate'], new DateTimeZone('UTC'));
   $date_stamp = $date->format("Y-m-d\TH:i:s\Z");
 
   $output = '';
@@ -1342,3 +1340,17 @@ function islandora_oai_islandora_oai_get_xsl_files() {
   return $transform_options;
 }
 
+/**
+ * Implements hook_islandora_solr_results_alter().
+ */
+function islandora_oai_islandora_solr_results_alter(&$search_results, $query_processor) {
+  $last_modified_date = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
+  foreach ($search_results as $key => $value) {
+    if (is_array($value['solr_doc'][$last_modified_date])) {
+      $search_results[$key]['lastModifiedDate'] = $value['solr_doc'][$last_modified_date][0];
+    }
+    else {
+      $search_results[$key]['lastModifiedDate'] = $value['solr_doc'][$last_modified_date];
+    }
+  }
+}
