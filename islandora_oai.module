@@ -351,7 +351,7 @@ function islandora_oai_get_record(&$writer, $args) {
   }
 
   $results = islandora_oai_query_solr(0, 'PID', $identifier);
-  $record = $results[0];
+  $record = $results['objects'][0];
 
   if (!$record['PID']) {
     islandora_oai_add_error('idDoesNotExist', '', $identifier);
@@ -359,7 +359,7 @@ function islandora_oai_get_record(&$writer, $args) {
   }
 
   $writer->startElement('GetRecord');
-  islandora_oai_build_record_response($writer, $record['solr_doc'], TRUE, $metadata_prefix);
+  islandora_oai_build_record_response($writer, $record, TRUE, $metadata_prefix);
   $writer->endElement();
 }
 
@@ -691,7 +691,7 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
 
   try {
     $query_processor->executeQuery();
-    $solr_results = $query_processor->islandoraSolrResult['response']['objects'];
+    $solr_results = $query_processor->islandoraSolrResult['response'];
   } catch (Exception $e) {
     drupal_set_message(t('error searching @message', array('@message' => $e->getMessage())), 'error');
   }
@@ -866,7 +866,6 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
   }
 
   $results = islandora_oai_query_solr($token->deliveredrecords, $field, $query, $set, $date_query);
-
   $num_rows = $results['numFound'];
 
   if ($num_rows) {
@@ -876,8 +875,8 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
     else {
       $writer->startElement('ListIdentifiers');
     }
-    foreach ($results['response']['objects'] as $doc) {
-      islandora_oai_build_record_response($writer, $doc['solr_doc'], $list_rec, $metadata_prefix);
+    foreach ($results['objects'] as $doc) {
+      islandora_oai_build_record_response($writer, $doc, $list_rec, $metadata_prefix);
     }
 
     if ($num_rows - $token->deliveredrecords > $max_records) {
@@ -932,8 +931,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
   $identifier = $record['PID'];
   $identifier = str_replace(':', '_', $identifier);
   $repo_id = variable_get('oai2_repository_identifier', 'drupal-site.org');
-  $last_modified_date = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
-  $date = new DateTime((string) $record[$last_modified_date], new DateTimeZone('UTC'));
+  $date = new DateTime((string) $record['lastModifiedDate'], new DateTimeZone('UTC'));
   $date_stamp = $date->format("Y-m-d\TH:i:s\Z");
 
   $output = '';
@@ -948,9 +946,9 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
   foreach (_islandora_oai_get_membership_array () as $spec) {
     list($field, $prefix) = $spec;
 
-    if (isset($record->{$field})) {
+    if (isset($record[$field])) {
       // Need to cast to array such that we can check for multiple collections
-      foreach ((array) $record->{$field} as $set) {
+      foreach ((array) $record[$field] as $set) {
         $set = str_replace('info:fedora/', '', $set);
         if (empty($prefix) || (!empty($prefix) && strpos($set, $prefix) === 0)) {
           $set_spec = drupal_substr($set, drupal_strlen($prefix));
@@ -1342,3 +1340,17 @@ function islandora_oai_islandora_oai_get_xsl_files() {
   return $transform_options;
 }
 
+/**
+ * Implements hook_islandora_solr_results_alter().
+ */
+function islandora_oai_islandora_solr_results_alter(&$search_results, $query_processor) {
+  $last_modified_date = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
+  foreach ($search_results as $key => $value) {
+    if (is_array($value['solr_doc'][$last_modified_date])) {
+      $search_results[$key]['lastModifiedDate'] = $value['solr_doc'][$last_modified_date][0];
+    }
+    else {
+      $search_results[$key]['lastModifiedDate'] = $value['solr_doc'][$last_modified_date];
+    }
+  }
+}
