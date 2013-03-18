@@ -75,7 +75,7 @@ function islandora_oai_settings($form, $form_state) {
     '#title' => t('Solr RELS-EXT collection field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_collection_field', "rels.isMemberOfCollection\nrels.isMemberOf"),
-    '#description' => t('Solr fields used to determine if a doc is a member of a collection.  Can also specify a prefix, in the from "field_name ~ prefix".  Ends up with ORing together the list of predicates above into a list like: $field_name:"$prefix$collection_pid"'),
+    '#description' => t('Solr fields used to determine if a doc is a member of a collection.  To specify a prefix, use this format "field_name ~ prefix".'),
   );
   $form['oai2_configuration']['oai2_xacml_role_field'] = array(
     '#type' => 'textfield',
@@ -86,7 +86,7 @@ function islandora_oai_settings($form, $form_state) {
   );
   $form['oai2_configuration']['oai2_xacml_user_field'] = array(
     '#type' => 'textfield',
-    '#title' => t('Solr XACML role field'),
+    '#title' => t('Solr XACML user field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_xacml_user_field', 'rels.isViewableByUser'),
     '#description' => t('Field from the RI which is indexed into Solr.'),
@@ -249,20 +249,6 @@ function islandora_oai_settings($form, $form_state) {
      ),
     '#title_display' => 'invisible',
     '#size' => 22,
-  );
-  $form['oai2_field_mapping'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Mappings: Field -> DCMI Metadata Term'),
-    '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
-    '#description' => t("This is where content type fields are mapped to DCMI Metadata terms. Blank fields will not appear
-                         in the OAI-PMH response. If you see no fields here, you must expose some content types above.
-                         Field values should be in the form of 'dc:title'<br/><br/>
-
-                        Notes:&nbsp;&nbsp;List of properties in the legacy /elements/1.1/ namespace of Dublin Core:contributor, coverage, creator,
-                        date, description, format, identifiers, language, publisher, relation, rights, source, subject, title.<br/><br/>
-                        For more information please visit:http://www.dublincore.org/documents/dcmi-terms/<br/><br/>
-    "),
   );
 
   return system_settings_form($form);

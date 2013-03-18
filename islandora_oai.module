@@ -370,7 +370,7 @@ function islandora_oai_get_record(&$writer, $args) {
  *
  * @return The granularity of the date, or FALSE.
  */
-function _islandora_oai_getDateGranularity($date) {
+function _islandora_oai_get_date_granularity($date) {
   if (preg_match("/^\d\d\d\d\-\d\d\-\d\d$/", $date)) {
     return 'YYYY-MM-DD';
   }
@@ -389,21 +389,21 @@ function _islandora_oai_getDateGranularity($date) {
  *
  * @return TRUE or FALSE
  */
-function _islandora_oai_checkDateFormat($date) {
+function _islandora_oai_check_date_format($date) {
   static $granularity;
-  $newGranularity = _islandora_oai_getDateGranularity($date);
+  $new_granularity = _islandora_oai_get_date_granularity($date);
 
-  if (!$newGranularity) {
+  if (!$new_granularity) {
     return FALSE;
   }
 
   if ($granularity) {
-    if ($granularity != $newGranularity) {
+    if ($granularity != $new_granularity) {
       return FALSE;
     }
   }
   else {
-    $granularity = $newGranularity;
+    $granularity = $new_granularity;
   }
 
   // Validate date based on granularity
@@ -511,7 +511,7 @@ function islandora_oai_get_earliest_datetime() {
   return $earliest_datestamp;
 }
 
-function escapePhrase($value) {
+function escape_phrase($value) {
   $pattern = '/("|:|[|]|\\\)/';
   $replace = '\\\$1';
 
@@ -568,7 +568,7 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
     $field = '*';
   }
   else {
-    $query = escapePhrase("$query");
+    $query = escape_phrase("$query");
   }
   $query = $field . ':' . $query;
   $query_processor->buildQuery($query);
@@ -728,7 +728,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
           return FALSE;
         }
         //ensure valid date/time format
-        if (_islandora_oai_checkDateFormat($from)) {
+        if (_islandora_oai_check_date_format($from)) {
           $from_time = _islandora_oai_datetime_to_time($from);
         }
         else {
@@ -746,7 +746,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
           return FALSE;
         }
         // Ensure valid date/time format
-        if (_islandora_oai_checkDateFormat($until)) {
+        if (_islandora_oai_check_date_format($until)) {
           $until_time = _islandora_oai_datetime_to_time($until);
         }
         else {
@@ -1050,7 +1050,7 @@ function _islandora_oai_datetime_to_time($datetime) {
  * Convert datetime dc format to timestmap
  */
 function _islandora_oai_datetime_to_solr_time($datetime) {
-  $granularity = _islandora_oai_getDateGranularity($datetime);
+  $granularity = _islandora_oai_get_date_granularity($datetime);
 
   switch ($granularity) {
     case 'YYYY-MM-DD':
@@ -1288,14 +1288,14 @@ function islandora_oai_list_sets($writer, $args) {
           $print_list_set = TRUE;
         }
         $writer->startElement('set');
-        $setName = $result['title']['value'];
+        $set_name = $result['title']['value'];
 
-        if (empty($setName)) {
-          $setName = t('Empty label');
+        if (empty($set_name)) {
+          $set_name = t('Empty label');
         }
         $set_pid = str_replace(':', '_', $setspec);
         $writer->writeElement('setSpec', $set_pid);
-        $writer->writeElement('setName', $setName);
+        $writer->writeElement('setName', $set_name);
         $writer->endElement();
       }
     }
