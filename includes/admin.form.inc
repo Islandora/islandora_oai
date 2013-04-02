@@ -27,12 +27,12 @@ function islandora_oai_settings($form, $form_state) {
   );
   $form['oai2_configuration']['oai2_path'] = array(
     '#type' => 'textfield',
-    '#title' => t('The path of the Repository'),
+    '#title' => t('Path to the Repository'),
     '#field_prefix' => $base_url . '/',
     '#required' => TRUE,
     '#size' => '50',
     '#default_value' => variable_get('oai2_path', 'oai2'),
-    '#description' => t('The path where the OAI-PMH service respond. Ex. @base_url/oai2', array('@base_url' => $base_url))
+    '#description' => t('The path where the OAI-PMH service will respond, e.g. @base_url/oai2', array('@base_url' => $base_url))
   );
   $form['oai2_configuration']['oai2_repository_identifier'] = array(
     '#type' => 'textfield',
@@ -40,11 +40,11 @@ function islandora_oai_settings($form, $form_state) {
     '#required' => TRUE,
     '#size' => '50',
     '#default_value' => variable_get('oai2_repository_identifier', 'drupal-site.org'),
-    '#description' => t('The identifier for this repository. Ex. oai:<strong>drupal-site.org</strong>:123.'),
+    '#description' => t('The identifier for this repository, e.g. oai:<strong>drupal-site.org</strong>:123.'),
   );
   $form['oai2_configuration']['oai2_admin_email'] = array(
     '#type' => 'textfield',
-    '#title' => t('Admin Email'),
+    '#title' => t('Administrator Email'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_admin_email', 'admin@example.com')
   );
@@ -53,57 +53,57 @@ function islandora_oai_settings($form, $form_state) {
     '#title' => t('Maximum Response Size'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_max_size', '20'),
-    '#description' => t('The maximum number of records to issue per response. If result set is larger than this number,
-                      a resumption token will be issued'),
+    '#description' => t('The maximum number of records to issue per response. If the result set is larger than this
+                       number, a resumption token will be issued'),
   );
   $form['oai2_configuration']['oai2_expire_time'] = array(
     '#type' => 'textfield',
     '#title' => t('Expiration Time'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_expire_time', '86400'),
-    '#description' => t('The amount of time a resumption token will remain valid in seconds. Defaults to one day (86400s).'),
+    '#description' => t('The amount of time a resumption token will remain valid, in seconds. Defaults to one day (86400s).'),
   );
   $form['oai2_configuration']['oai2_date_field'] = array(
     '#type' => 'textfield',
-    '#title' => t('Solr date field'),
+    '#title' => t('Solr Date Field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_date_field', 'fgs.lastModifiedDate'),
-    '#description' => t('The date field to use.'),
+    '#description' => t('The Solr field containing the date to be used.'),
   );
   $form['oai2_configuration']['oai2_collection_field'] = array(
     '#type' => 'textarea',
-    '#title' => t('Solr RELS-EXT collection field'),
+    '#title' => t('Solr RELS-EXT Collection Field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_collection_field', "rels.isMemberOfCollection\nrels.isMemberOf"),
-    '#description' => t('Solr fields used to determine if a doc is a member of a collection.  To specify a prefix, use this format "field_name ~ prefix".'),
+    '#description' => t('The Solr fields used to determine what collection, if any, an object is a member of. To specify a prefix, use the format "field_name ~ prefix".'),
   );
   $form['oai2_configuration']['oai2_xacml_role_field'] = array(
     '#type' => 'textfield',
-    '#title' => t('Solr XACML role field'),
+    '#title' => t('Solr XACML Role Field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_xacml_role_field', 'rels.isViewableByRole'),
-    '#description' => t('Field from the RI which is indexed into Solr.'),
+    '#description' => t('The field in a RELS-INT datastream that defines which roles may view an object. This may be added by the XACML editor, for example.'),
   );
   $form['oai2_configuration']['oai2_xacml_user_field'] = array(
     '#type' => 'textfield',
-    '#title' => t('Solr XACML user field'),
+    '#title' => t('Solr XACML User Field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_xacml_user_field', 'rels.isViewableByUser'),
-    '#description' => t('Field from the RI which is indexed into Solr.'),
+    '#description' => t('The field in a RELS-INT datastream that defines which users may view an object.'),
   );
   $form['oai2_configuration']['oai2_content_model_field'] = array(
     '#type' => 'textfield',
-    '#title' => t('Solr hasModel field'),
+    '#title' => t('Solr Content Model Field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_content_model_field', 'rels.hasModel'),
-    '#description' => t('Field which indexes the RELS-EXT hasModel relationship.'),
+    '#description' => t('Field which RELS-EXT datastreams use to define an object\'s content model.'),
   );
   $form['oai2_configuration']['oai2_exclude_content_models'] = array(
     '#type' => 'textarea',
-    '#title' => t('Exclude Content Models'),
+    '#title' => t('Excluded Content Models'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_exclude_content_models', ''),
-    '#description' => t('By default all objects are included in the harvest. This field will let you exclude all objects with a certain content model. For example to exclude all objects with the islandora collection content model you would use: "islandora:collectionCModel"'),
+    '#description' => t('By default, all objects are visible to OAI metadata harvesters. This field allows you to exclude all objects with a certain content model, e.g "islandora:collectionCModel" to exclude all objects with the Islandora Core Collection content model.'),
   );
 
   $metadata_format_options = array();
@@ -177,19 +177,19 @@ function islandora_oai_settings($form, $form_state) {
     '#type' => 'item',
     '#title' => t('Metadata Prefix'),
     '#markup' =>  $metadata_prefix,
-    '#description' => t('Default for selected metadata format.')
+    '#description' => t('Default metadata prefix for the selected format.')
   );
   $form['oai2_metadata']['oai2_metadata_namespace'] = array(
     '#type' => 'item',
     '#title' => t('Metadata Namespace'),
     '#markup' => $metadata_namespace,
-    '#description' => t('Default for selected metadata format.')
+    '#description' => t('Default metadata namespace for the selected format.')
   );
   $form['oai2_metadata']['oai2_schema_location'] = array(
     '#type' => 'item',
     '#title' => t('Schema Location'),
     '#markup' => $schema_location,
-    '#description' => t('Default for selected metadata format.')
+    '#description' => t('Default URI for the selected metadata format;s schema.')
   );
   $form['oai2_metadata']['oai2_options'] = array(
     '#type' => 'fieldset',
@@ -204,7 +204,7 @@ function islandora_oai_settings($form, $form_state) {
     '#size' => 30,
     '#title' => 'Metadata Datastream ID',
     '#default_value' => variable_get('oai2_metadata_datastream_id_' . $metadata_prefix, 'MODS'),
-    '#description' => t('Note that the datastream ID is case sensitive'),
+    '#description' => t('(Note that this is case-sensitive)'),
   );
 
   $oai_invoke_files = module_invoke_all('islandora_oai_get_xsl_files');
@@ -223,6 +223,7 @@ function islandora_oai_settings($form, $form_state) {
     '#title' => t('File to use for transforming @metadata_prefix', array('@metadata_prefix' => $metadata_prefix)),
     '#options' => $transform_options,
     '#default_value' => $default_transform,
+    '#description' => t('XSL or XSLT file used to translate existing metadata to an appropriate OAI-PMH format.'),
   );
 
   $form['oai2_metadata']['oai2_options']['upload'] = array(
@@ -236,7 +237,7 @@ function islandora_oai_settings($form, $form_state) {
 
   $form['oai2_metadata']['oai2_options']['upload']['oai2_upload_xsl'] = array(
     '#type' => 'file',
-    '#title' => t('Upload a XSL or XSLT to be used for transformations'),
+    '#title' => t('Upload an XSL or XSLT file to be used for transformations'),
   );
 
   $form['oai2_metadata']['oai2_options']['upload']['oai2_upload_xsl_button'] = array(

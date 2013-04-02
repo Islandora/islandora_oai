@@ -1,5 +1,5 @@
 name = Islandora OAI Provider
-description = "This module provides access to the protocol OAI-PMH 2.0 and is based on the oai2ForCCK.module"
+description = "Provides access to an Islandora repository via the OAI-PMH 2.0. Based on the OAI2 for CCK module."
 dependencies[] = islandora_solr
 dependencies[] = islandora
 configure = admin/islandora/islandora-oai

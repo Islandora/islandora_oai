@@ -284,7 +284,7 @@ function islandora_oai_errors($code, $argument='', $value='') {
       break;
 
     case 'sameVerb' :
-      $text = t('Do not use verb more than once.');
+      $text = t('Do not use the same verb more than once.');
       $code = 'badVerb';
       break;
 
@@ -1012,7 +1012,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
 
     // Transformation fails
     if (empty($oai_output) && isset($object[$param])) {
-      watchdog('islandora_oai', 'The pid @pidname failed to transform on the @datastream datastream with the file @file',
+      watchdog('islandora_oai', 'The pid @pidname failed to transform on the @datastream datastream with the file @file.',
           array(
             '@pidname' => $record['PID'],
             '@file' => $file,
@@ -1021,7 +1021,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
     }
     // Datastream doesn't exist
     elseif (!isset($object[$param])) {
-      watchdog('islandora_oai', "The pid @pidname failed to transform on the @datastream datastream as the datastream doesn't exist",
+      watchdog('islandora_oai', "The pid @pidname failed to transform on the @datastream datastream as the datastream doesn't exist.",
           array(
             '@pidname' => $record['PID'],
             '@datastream' => $param,
