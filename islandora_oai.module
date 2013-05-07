@@ -577,7 +577,7 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
   $xacml_role = variable_get('oai2_xacml_role_field', 'rels.isViewableByRole');
   $xacml_user = variable_get('oai2_xacml_user_field', 'rels.isViewableByUser');
 
-  $query_processor->solrParams['fl'] = '*, PID, ' . variable_get('oai2_date_field', 'fgs.lastModifiedDate');
+  $query_processor->solrParams['fl'] = '*, PID, ' . variable_get('oai2_date_field', 'fgs_lastModifiedDate_dt');
 
   if ($date_query) {
     $query_processor->solrParams['fq'][] = $date_query;
@@ -843,7 +843,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
   $date_query = NULL;
 
   if (isset($from) || isset($until)) {
-    $field = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
+    $field = variable_get('oai2_date_field', 'fgs_lastModifiedDate_dt');
 
     if (isset($from)) {
       $solr_from = _islandora_oai_datetime_to_solr_time($from);
@@ -1344,7 +1344,7 @@ function islandora_oai_islandora_oai_get_xsl_files() {
  * Implements hook_islandora_solr_results_alter().
  */
 function islandora_oai_islandora_solr_results_alter(&$search_results, $query_processor) {
-  $last_modified_date = variable_get('oai2_date_field', 'fgs.lastModifiedDate');
+  $last_modified_date = variable_get('oai2_date_field', 'fgs_lastModifiedDate_dt');
   foreach ($search_results as $key => $value) {
     if (is_array($value['solr_doc'][$last_modified_date])) {
       $search_results[$key]['lastModifiedDate'] = $value['solr_doc'][$last_modified_date][0];
