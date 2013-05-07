@@ -67,7 +67,7 @@ function islandora_oai_settings($form, $form_state) {
     '#type' => 'textfield',
     '#title' => t('Solr Date Field'),
     '#size' => '50',
-    '#default_value' => variable_get('oai2_date_field', 'fgs.lastModifiedDate'),
+    '#default_value' => variable_get('oai2_date_field', 'fgs_lastModifiedDate_dt'),
     '#description' => t('The Solr field containing the date to be used.'),
   );
   $form['oai2_configuration']['oai2_collection_field'] = array(
