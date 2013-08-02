@@ -3,7 +3,6 @@
 /**
  * @file
  * islandora_oai.admin.inc
- *
  */
 
 /**
@@ -16,14 +15,14 @@ function islandora_oai_settings($form, $form_state) {
     '#type' => 'fieldset',
     '#title' => t('Configuration'),
     '#collapsible' => TRUE,
-    '#collapsed' => TRUE
+    '#collapsed' => TRUE,
   );
   $form['oai2_configuration']['oai2_repository_name'] = array(
     '#type' => 'textfield',
     '#title' => t('Repository Name'),
     '#required' => TRUE,
     '#size' => '50',
-    '#default_value' =>  variable_get('oai2_repository_name', 'Repository')
+    '#default_value' => variable_get('oai2_repository_name', 'Repository'),
   );
   $form['oai2_configuration']['oai2_path'] = array(
     '#type' => 'textfield',
@@ -32,7 +31,7 @@ function islandora_oai_settings($form, $form_state) {
     '#required' => TRUE,
     '#size' => '50',
     '#default_value' => variable_get('oai2_path', 'oai2'),
-    '#description' => t('The path where the OAI-PMH service will respond, e.g. @base_url/oai2', array('@base_url' => $base_url))
+    '#description' => t('The path where the OAI-PMH service will respond, e.g. @base_url/oai2', array('@base_url' => $base_url)),
   );
   $form['oai2_configuration']['oai2_repository_identifier'] = array(
     '#type' => 'textfield',
@@ -46,15 +45,14 @@ function islandora_oai_settings($form, $form_state) {
     '#type' => 'textfield',
     '#title' => t('Administrator Email'),
     '#size' => '50',
-    '#default_value' => variable_get('oai2_admin_email', 'admin@example.com')
+    '#default_value' => variable_get('oai2_admin_email', 'admin@example.com'),
   );
   $form['oai2_configuration']['oai2_max_size'] = array(
     '#type' => 'textfield',
     '#title' => t('Maximum Response Size'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_max_size', '20'),
-    '#description' => t('The maximum number of records to issue per response. If the result set is larger than this
-                       number, a resumption token will be issued'),
+    '#description' => t('The maximum number of records to issue per response. If the result set is larger than this number, a resumption token will be issued'),
   );
   $form['oai2_configuration']['oai2_expire_time'] = array(
     '#type' => 'textfield',
@@ -96,7 +94,7 @@ function islandora_oai_settings($form, $form_state) {
     '#title' => t('Solr Content Model Field'),
     '#size' => '50',
     '#default_value' => variable_get('oai2_content_model_field', 'rels.hasModel'),
-    '#description' => t('Field which RELS-EXT datastreams use to define an object\'s content model.'),
+    '#description' => t("Field which RELS-EXT datastreams use to define an object's content model."),
   );
   $form['oai2_configuration']['oai2_exclude_content_models'] = array(
     '#type' => 'textarea',
@@ -121,7 +119,7 @@ function islandora_oai_settings($form, $form_state) {
       $metadata_format = $form_state['values']['oai2_metadata_format'];
       $oai2_metadata_format_collapsed = FALSE;
     }
-    // Upload pressed
+    // Upload pressed.
     else {
       $oai2_options_collapsed = FALSE;
 
@@ -162,11 +160,11 @@ function islandora_oai_settings($form, $form_state) {
     '#ajax' => array(
       'callback' => 'islandora_oai_select_metadata_prefix_js',
       'wrapper' => 'islandora_oai',
-      ),
+    ),
   );
 
   $result = db_query("SELECT * FROM {oai2_metadata_formats} WHERE name = :metadata_format",
-      array(':metadata_format' => $metadata_format)
+    array(':metadata_format' => $metadata_format)
   );
   foreach ($result as $row) {
     $metadata_prefix = $row->metadata_prefix;
@@ -176,20 +174,20 @@ function islandora_oai_settings($form, $form_state) {
   $form['oai2_metadata']['oai2_metadata_prefix'] = array(
     '#type' => 'item',
     '#title' => t('Metadata Prefix'),
-    '#markup' =>  $metadata_prefix,
-    '#description' => t('Default metadata prefix for the selected format.')
+    '#markup' => $metadata_prefix,
+    '#description' => t('Default metadata prefix for the selected format.'),
   );
   $form['oai2_metadata']['oai2_metadata_namespace'] = array(
     '#type' => 'item',
     '#title' => t('Metadata Namespace'),
     '#markup' => $metadata_namespace,
-    '#description' => t('Default metadata namespace for the selected format.')
+    '#description' => t('Default metadata namespace for the selected format.'),
   );
   $form['oai2_metadata']['oai2_schema_location'] = array(
     '#type' => 'item',
     '#title' => t('Schema Location'),
     '#markup' => $schema_location,
-    '#description' => t('Default URI for the selected metadata format;s schema.')
+    '#description' => t('Default URI for the selected metadata format;s schema.'),
   );
   $form['oai2_metadata']['oai2_options'] = array(
     '#type' => 'fieldset',
@@ -247,7 +245,7 @@ function islandora_oai_settings($form, $form_state) {
     '#ajax' => array(
       'callback' => 'islandora_oai_upload_file_js',
       'wrapper' => 'islandora_oai_options',
-     ),
+    ),
     '#title_display' => 'invisible',
     '#size' => 22,
   );
@@ -255,11 +253,16 @@ function islandora_oai_settings($form, $form_state) {
   return system_settings_form($form);
 }
 
+/**
+ * Function select_metadata_prefix_js.
+ */
 function islandora_oai_select_metadata_prefix_js($form, &$form_state) {
   return $form['oai2_metadata'];
 }
 
+/**
+ * Function upload_file_js.
+ */
 function islandora_oai_upload_file_js($form, &$form_state) {
   return $form['oai2_metadata']['oai2_options'];
 }
-

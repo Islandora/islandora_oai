@@ -1,3 +1,14 @@
+BUILD STATUS
+------------
+Current build status:
+[![Build Status](https://travis-ci.org/Islandora/islandora_oai.png?branch=7.x)](https://travis-ci.org/Islandora/islandora_oai)
+
+CI Server:
+http://jenkins.discoverygarden.ca
+
+ISLANDORA OAI
+==================
+
 CONTENTS OF THIS FILE
 ---------------------
 
@@ -17,7 +28,7 @@ Islandora OAI Provider Module
 
 This module provides an implementation the Open Archives Initiative Protocol for Metadata Harvesting (OAI-PMH)
 for Islandora fedora repository with a solr index. By implementing the islanodra_oa module,
-you can expose content (its metadata) as an OAI-PMH repository. It will then be accessible by OAI harvesters.
+you can expose content (its metadata) as an OAI-PMH repository. It will then be accessible by OAI harvesters
 For further OAI documentation, please see here: http://www.openarchives.org/OAI/openarchivesprotocol.html
 
 

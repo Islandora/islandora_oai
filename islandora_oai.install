@@ -2,11 +2,11 @@
 
 /**
  * @file
- *  oai2ForCCK.install
+ * oai2ForCCK.install
  */
 
 /**
- * Implementation of hook_install()
+ * Implements hook_install().
  */
 function islandora_oai_install() {
   $result = array();
@@ -37,7 +37,7 @@ function islandora_oai_install() {
 }
 
 /**
- * Implementation of hook_schema().
+ * Implements hook_schema().
  */
 function islandora_oai_schema() {
   $schema = array();
@@ -49,44 +49,45 @@ function islandora_oai_schema() {
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
-        'disp-width' => '20'
+        'disp-width' => '20',
       ),
       'deliveredrecords' => array(
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
-        'disp-width' => '11'
+        'disp-width' => '11',
       ),
       'extquery' => array(
         'type' => 'varchar',
         'length' => '255',
         'not null' => FALSE,
-        'default' => ''
+        'default' => '',
       ),
       'queryargs' => array(
         'type' => 'varchar',
         'length' => '255',
         'not null' => FALSE,
-        'default' => ''
+        'default' => '',
       ),
       'setargs' => array(
         'type' => 'varchar',
-        'length' => '64', //length of fedora pid
+        // Length of fedora pid.
+        'length' => '64',
         'not null' => FALSE,
-        'default' => ''
+        'default' => '',
       ),
       'metadata_prefix' => array(
         'type' => 'varchar',
         'length' => '255',
         'not null' => FALSE,
-        'default' => ''
+        'default' => '',
       ),
       'timestamp' => array(
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
-        'disp-width' => '11'
-      )
+        'disp-width' => '11',
+      ),
     ),
     'primary key' => array('id'),
   );
@@ -98,37 +99,38 @@ function islandora_oai_schema() {
         'type' => 'varchar',
         'length' => '100',
         'not null' => TRUE,
-        'default' => ''
+        'default' => '',
       ),
       'metadata_prefix' => array(
         'type' => 'varchar',
         'length' => '100',
         'not null' => TRUE,
-        'default' => ''
+        'default' => '',
       ),
       'oai2_schema' => array(
         'type' => 'varchar',
         'length' => '255',
         'not null' => TRUE,
-        'default' => ''
+        'default' => '',
       ),
       'metadata_namespace' => array(
         'type' => 'varchar',
         'length' => '255',
         'not null' => TRUE,
-        'default' => ''
+        'default' => '',
       ),
       'record_prefix' => array(
         'type' => 'varchar',
         'length' => '100',
         'not null' => TRUE,
-        'default' => ''
+        'default' => '',
       ),
       'record_namespace' => array(
         'type' => 'varchar',
         'length' => '255',
         'not null' => TRUE,
-        'default' => '')
+        'default' => '',
+      ),
     ),
     'primary key' => array('name'),
   );
@@ -137,7 +139,7 @@ function islandora_oai_schema() {
 }
 
 /**
- * Implementation of hook_uninstall()
+ * Implements hook_uninstall().
  */
 function islandora_oai_uninstall() {
 

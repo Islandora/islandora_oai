@@ -2,9 +2,7 @@
 
 /**
  * @file
- *
  * Module used to respond to OAI requests.
- *
  */
 
 /**
@@ -25,20 +23,20 @@ function islandora_oai_menu() {
     'title' => 'OAI2',
     'page callback' => 'islandora_oai_parse_request',
     'access arguments' => array('access content'),
-    'type' => MENU_CALLBACK
+    'type' => MENU_CALLBACK,
   );
   return $items;
 }
 
 /**
- * Parses the URL and calls the appropriate function to handle the request
+ * Parses the URL and calls the appropriate function to handle the request.
  */
 function islandora_oai_parse_request() {
   global $base_url;
-  //set compression = TRUE
+  // Set compression = TRUE.
   $compress = TRUE;
 
-  // Instansiate a new XML Writer object we will pass around
+  // Instansiate a new XML Writer object we will pass around.
   $writer = new XMLWriter();
   $writer->openURI('php://output');
   $writer->startDocument('1.0', 'utf-8');
@@ -49,31 +47,31 @@ function islandora_oai_parse_request() {
   $response_date = gmstrftime('%Y-%m-%dT%H:%M:%SZ');
   $writer->writeElement('responseDate', $response_date);
 
-  //arguments are all GET arguments except for Drupal's q
-  if (isset($_GET) && sizeof($_GET) != 1) {
+  // Arguments are all GET arguments except for Drupal's q.
+  if (isset($_GET) && count($_GET) != 1) {
     $args = $_GET;
     $verb = $_GET['verb'];
     unset($args['q']);
     unset($args['verb']);
   }
-  //allow post requests
-  elseif (isset($_POST) && sizeof($_POST) != 0) {
+  // Allow post requests.
+  elseif (isset($_POST) && count($_POST) != 0) {
     $args = $_POST;
     $verb = $_POST['verb'];
     unset($args['verb']);
   }
-  //error if no GET arguments
+  // Error if no GET arguments.
   else {
     islandora_oai_add_error('badRequestMethod', $_SERVER['REQUEST_METHOD']);
   }
 
-  // Argument repeated more than once in the GET request
+  // Argument repeated more than once in the GET request.
   $arg_list = explode('&', ($_SERVER['QUERY_STRING']));
   $arg_list = (array_count_values($arg_list));
 
   $repeat_arg = FALSE;
 
-  // Repeating arguments within the request
+  // Repeating arguments within the request.
   foreach ($arg_list as $value) {
     if ($value > 1) {
       islandora_oai_add_error('sameArgument');
@@ -82,7 +80,7 @@ function islandora_oai_parse_request() {
     }
   }
 
-  //set request url
+  // Set request URL.
   if (isset($_GET['q'])) {
     $request_url = $base_url . '/' . $_GET['q'];
   }
@@ -91,10 +89,10 @@ function islandora_oai_parse_request() {
   }
 
   header('Content-Type: text/xml');
-  // Add the request
+  // Add the request.
   $writer->startElement('request');
 
-  // Check to see if we have a bad verb
+  // Check to see if we have a bad verb.
   $error_list = islandora_oai_get_errors();
 
   if (!count($error_list)) {
@@ -103,32 +101,39 @@ function islandora_oai_parse_request() {
   $writer->text($request_url);
   $writer->endElement();
 
-  //switch on verb and dispatch requests
+  // Switch on verb and dispatch requests.
   if (!$repeat_arg) {
     switch ($verb) {
 
       case 'GetRecord':
         islandora_oai_get_record($writer, $args);
         break;
+
       case 'Identify':
         $compress = FALSE;
         islandora_oai_identify($writer, $args);
         break;
+
       case 'ListIdentifiers':
         islandora_oai_list_id_rec($writer, $args);
         break;
+
       case 'ListMetadataFormats':
         islandora_oai_list_metadata_formats($writer, $args);
         break;
+
       case 'ListRecords':
         islandora_oai_list_id_rec($writer, $args, TRUE);
         break;
+
       case 'ListSets':
         islandora_oai_list_sets($writer, $args);
         break;
+
       case '':
         islandora_oai_add_error('noVerb');
         break;
+
       default:
         islandora_oai_add_error('badVerb', $verb);
     }
@@ -137,7 +142,7 @@ function islandora_oai_parse_request() {
   // Grab errors again for output.
   $error_list = islandora_oai_get_errors();
 
-  //get all errors and add them to the response
+  // Get all errors and add them to the response.
   if ($error_list) {
     foreach ($error_list as $code => $verb) {
       $writer->startElement('error');
@@ -153,13 +158,15 @@ function islandora_oai_parse_request() {
 /**
  * Returns errors generated during an OAI request.
  *
- * @return $error_text
- * */
+ * 
+ * @return string 
+ *   The error text to be returned
+ */
 function islandora_oai_get_errors() {
-  //get the errors array and convert it to a string
+  // Get the errors array and convert it to a string.
   $errors = islandora_oai_add_error('get');
 
-  //return false if no errors
+  // Return false if no errors.
   if (!count($errors)) {
     return FALSE;
   }
@@ -167,136 +174,144 @@ function islandora_oai_get_errors() {
 }
 
 /**
+ * Function add_error.
+ * 
  * This function simply routs a request to add an error to the error function
  * in a way that makes sense (hopefully)
  *
- *  @param $code string
- *    error code to be added, or 'get' if we want to get the $error array
- *  @param $argument string
- *    the argument causing the error
- *  @param $value string
- *    the argument value causing the error
+ * @param atring $code
+ *   error code to be added, or 'get' if we want to get the $error array
+ * @param string $argument
+ *   the argument causing the error
+ * @param string $value
+ *   the argument value causing the error
  *
- *  @return $errors array if $code is 'get' else no return value
- * */
-function islandora_oai_add_error($code, $argument='', $value='') {
+ * @return array 
+ *   $errors array if $code is 'get' else no return value
+ */
+function islandora_oai_add_error($code, $argument = '', $value = '') {
   return islandora_oai_errors($code, $argument, $value);
 }
 
 /**
- *  Define the oai2_errors based on OAI2 specification
- *  See : http://www.openarchives.org/OAI/openarchivesprotocol.html
+ * Define the oai2_errors based on OAI2 specification.
  *
- *  This is a helper function for oai2forcck_add_error and oai2forcck_get_errors
- *  We must use a helper function here to make use of a static variable instead of globals
- *  We are basically faking a class (singlton?) with getter and setter methods
+ * This is a helper function for oai2forcck_add_error and oai2forcck_get_errors
+ * We must use a helper function here to use of static var instead of globals
+ * We are basically faking a class (singlton?) with getter and setter methods
+ * OAI2 specification: http://www.openarchives.org/OAI/openarchivesprotocol.html
  *
- *  @param $code string
- *    error code to be added, or 'get' if we want to get the $error array
- *  @param $argument string
- *    the argument causing the error
- *  @param $value string
- *    the argument value causing the error
- *  @return
- *    Errors array if 'get', otherwise nothing
+ * @param string $code
+ *   error code to be added, or 'get' if we want to get the $error array
+ * @param string $argument
+ *   the argument causing the error
+ * @param string $value
+ *   the argument value causing the error
+ *
+ * @return array
+ *   Errors array if 'get', otherwise nothing
  */
-function islandora_oai_errors($code, $argument='', $value='') {
+function islandora_oai_errors($code, $argument = '', $value = '') {
 
-  // store errors in a static array
+  // Store errors in a static array.
   static $errors;
 
-  //initialize $errors
+  // Initialize $errors.
   if (!is_array($errors)) {
     $errors = array();
   }
 
   switch ($code) {
 
-    //return $errors if this is a get [errors] request
+    // Return $errors if this is a get [errors] request.
     case 'get':
       return $errors;
 
-    //clear out errors and return nothing
+    // Clear out errors and return nothing.
     case 'reset':
       $errors = array();
       return;
 
-    case 'badArgument' :
+    case 'badArgument':
       $text = t("The argument '@argument' (value=@value) included in the request is not valid.", array('@argument' => $argument, '@value' => $value));
       break;
 
-    case 'badGranularity' :
+    case 'badGranularity':
       $text = t("The value '@value' of the argument '@argument' is not valid.", array('@value' => $value, '@argument' => $argument));
       $code = 'badArgument';
       break;
 
-    case 'badResumptionToken' :
+    case 'badResumptionToken':
       $text = t("The resumptionToken '@value' does not exist or has already expired.", array('@value' => $value));
       break;
 
-    case 'badRequestMethod' :
+    case 'badRequestMethod':
       $text = t("The request method '@argument' is unknown.", array('@argument' => $argument));
       $code = 'badVerb';
       break;
 
-    case 'badVerb' :
+    case 'badVerb':
       $text = t("The verb '@argument' provided in the request is illegal.", array('@argument' => $argument));
       break;
 
-    case 'cannotDisseminateFormat' :
+    case 'cannotDisseminateFormat':
       $text = t("The metadata format '@value' given by @argument is not supported by this repository.", array('@value' => $value, '@argument' => $argument));
       break;
 
-    case 'exclusiveArgument' :
+    case 'exclusiveArgument':
       $text = t('The usage of resumptionToken as an argument allows no other arguments.');
       $code = 'badArgument';
       break;
 
-    case 'idDoesNotExist' :
+    case 'idDoesNotExist':
       $text = t("The value '@value' of the identifier is illegal for this repository.", array('@value' => $value));
       break;
 
-    case 'missingArgument' :
+    case 'missingArgument':
       $text = t("The required argument '@argument' is missing in the request.", array('@argument' => $argument));
       $code = 'badArgument';
       break;
 
-    case 'noRecordsMatch' :
+    case 'noRecordsMatch':
       $text = t('The combination of the given values results in an empty list.');
       break;
 
-    case 'noMetadataFormats' :
+    case 'noMetadataFormats':
       $text = t('There are no metadata formats available for the specified item.');
       break;
 
-    case 'noVerb' :
+    case 'noVerb':
       $text = t('The request does not provide any verb.');
       $code = 'badVerb';
       break;
 
-    case 'noSetHierarchy' :
+    case 'noSetHierarchy':
       $text = t('This repository does not support sets.');
       break;
 
-    case 'sameArgument' :
+    case 'sameArgument':
       $text = t('Do not use the same argument more than once.');
       $code = 'badArgument';
       break;
 
-    case 'sameVerb' :
+    case 'sameVerb':
       $text = t('Do not use the same verb more than once.');
       $code = 'badVerb';
       break;
 
     default:
-      $text = t("Unknown error: code: '@code', argument: '@argument', value: '@value'", array('@code' => $code, '@argument' => $argument, '@value' => $value));
+      $text = t("Unknown error:
+        code: '@code',
+        argument: '@argument',
+        value: '@value'",
+        array('@code' => $code, '@argument' => $argument, '@value' => $value));
       $code = 'badArgument';
   }
   $errors[$code] = $text;
 }
 
 /**
- * Cleanup expired resumption tokens
+ * Cleanup expired resumption tokens.
  */
 function islandora_oai_cron() {
   $expire_seconds = variable_get('oai2_expire_time', '86400');
@@ -305,19 +320,18 @@ function islandora_oai_cron() {
 }
 
 /**
- * Retrieve an individual metadata record from a repository
+ * Retrieve an individual metadata record from a repository.
  *
- * @param $writer
+ * @param string $writer
  *   The XMLWriter object being passed by reference for constructing our output.
- *
- * @param $args
+ * @param array $args
  *   Argument of the $_POST or $_GET request.
  */
 function islandora_oai_get_record(&$writer, $args) {
   foreach ($args as $key => $val) {
     switch ($key) {
       case 'identifier':
-        // Replace the first _ with a : so we have a pid
+        // Replace the first _ with a : so we have a pid.
         $val = preg_replace('/_/', ':', $val, 1);
         // Strip off the the prefix such that we are left with a Fedora pid.
         $id_prefix = trim(variable_get('oai2_repository_identifier', 'drupal-site.org'));
@@ -366,9 +380,11 @@ function islandora_oai_get_record(&$writer, $args) {
 /**
  * Get the date granuality.
  *
- * @param $date
+ * @param datestring $date
+ *   The date
  *
- * @return The granularity of the date, or FALSE.
+ * @return bool
+ *   The granularity of the date, or FALSE.
  */
 function _islandora_oai_get_date_granularity($date) {
   if (preg_match("/^\d\d\d\d\-\d\d\-\d\d$/", $date)) {
@@ -383,11 +399,13 @@ function _islandora_oai_get_date_granularity($date) {
 }
 
 /**
- * Validate the date format (from or until in the request)
+ * Validate the date format (from or until in the request).
  *
- * @param $date datestring
+ * @param datestring $date
+ *   The date
  *
- * @return TRUE or FALSE
+ * @return bool 
+ *   TRUE or FALSE
  */
 function _islandora_oai_check_date_format($date) {
   static $granularity;
@@ -406,7 +424,7 @@ function _islandora_oai_check_date_format($date) {
     $granularity = $new_granularity;
   }
 
-  // Validate date based on granularity
+  // Validate date based on granularity.
   if ($granularity == 'YYYY-MM-DDThh:mm:ssZ') {
     $checkstr = '([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z';
   }
@@ -414,7 +432,7 @@ function _islandora_oai_check_date_format($date) {
     $checkstr = '([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})';
   }
 
-  if (ereg($checkstr, $date, $regs)) {
+  if (preg_match("/$checkstr/", $date, $regs)) {
     if (checkdate($regs[2], $regs[3], $regs[1])) {
       return TRUE;
     }
@@ -428,21 +446,19 @@ function _islandora_oai_check_date_format($date) {
 }
 
 /**
- * Generate a random value for resumptionToken
+ * Generate a random value for resumptionToken.
  */
 function _get_random_token() {
   return mt_rand(12345, mt_getrandmax());
 }
 
 /**
- * Provides the repository identity information
+ * Provides the repository identity information.
  *
- * @param $writer
+ * @param object $writer
  *   The XMLWriter object being passed by reference for constructing our output.
- *
- * @param $args
+ * @param array $args
  *   Argument of the $_POST or $_GET request.
- *
  */
 function islandora_oai_identify(&$writer, $args) {
   global $base_url;
@@ -468,10 +484,10 @@ function islandora_oai_identify(&$writer, $args) {
   $writer->writeElement('granularity', 'YYYY-MM-DDThh:mm:ssZ');
   $writer->writeElement('compression', 'yes');
 
-  // Description
+  // Description.
   $writer->startElement('description');
 
-  // OAI Identifer
+  // OAI Identifer.
   $writer->startElement('oai-identifier');
   $writer->writeAttribute('xmlns', 'http://www.openarchives.org/OAI/2.0/oai-identifier');
   $writer->writeAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
@@ -488,7 +504,7 @@ function islandora_oai_identify(&$writer, $args) {
 /**
  * Retrieve the earliest datetime of content using Fedora's RI.
  *
- * @return
+ * @return datestamp
  *   The earliest datestamp retrieved from Fedora.
  */
 function islandora_oai_get_earliest_datetime() {
@@ -511,6 +527,9 @@ function islandora_oai_get_earliest_datetime() {
   return $earliest_datestamp;
 }
 
+/**
+ * Function escape_phrase.
+ */
 function escape_phrase($value) {
   $pattern = '/("|:|[|]|\\\)/';
   $replace = '\\\$1';
@@ -522,12 +541,10 @@ function escape_phrase($value) {
  * Returns the collection fields defined in the admin page in array format.
  *
  * @return array
- *   The membership info in an array of the form:
- *     array(
- *       array(field_1, prefix_1),
- *       array(field_2, prefix_2), ... and so on.
- *     )
- *
+ *   The membership info in an array containing multiple:
+ *   array: an array holding a field and a prefix
+ *     - field
+ *     - prefix
  */
 function _islandora_oai_get_membership_array() {
   // Store in a static variable, to avoid reparsing within the same request.
@@ -550,11 +567,17 @@ function _islandora_oai_get_membership_array() {
  * Function that performs the queries to Solr.
  *
  * @param int $start
+ *   Start
  * @param string $field
+ *   Field
  * @param string $query
- * @param boolean $set
- * @param boolean $date_query
- * @return
+ *   Query
+ * @param bool $set
+ *   Set
+ * @param bool $date_query
+ *   Date Query
+ * 
+ * @return array
  *   The results generated from the solr query.
  */
 function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $set = NULL, $date_query = NULL) {
@@ -562,7 +585,7 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
 
   $query_processor = new IslandoraSolrQueryProcessor();
 
-  // Build the query string
+  // Build the query string.
   if (empty($query)) {
     $query = '*';
     $field = '*';
@@ -573,7 +596,8 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
   $query = $field . ':' . $query;
   $query_processor->buildQuery($query);
 
-  // Grab the defined XACML fields to use in filtering content returned in our ITQL query.
+  // Grab the defined XACML fields to use in filtering content returned in our
+  // ITQL query.
   $xacml_role = variable_get('oai2_xacml_role_field', 'rels.isViewableByRole');
   $xacml_user = variable_get('oai2_xacml_user_field', 'rels.isViewableByUser');
 
@@ -593,14 +617,18 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
     }
   }
   if ($set) {
-    // OAI uses : to separate multiple setSpecs so we had to replace it from the pids earlier
+    // OAI uses : to separate multiple setSpecs so we had to replace it
+    // from the pids earlier.
     $sets = explode(':', $set);
     $descendants = array();
 
-    // Get all descendant children (collection and objs) and add to the sets array if not already existing.
-    // Cannot constrain on collections only as name conventions may change across implementations
+    // Get all descendant children (collection and objs) and add to the sets
+    // array if not already existing.
+    // Cannot constrain on collections only as name conventions may change
+    // across implementations.
     foreach ($sets as $key => $value) {
-      // Replace the first occurence of _ with a : so we are back to a valid pid
+      // Replace the first occurence of _ with a : so we are back to a
+      // valid pid.
       $value = preg_replace('/_/', ':', $value, 1);
       $value = trim($value);
       $sets[$key] = $value;
@@ -680,7 +708,7 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
     $set_fq = array();
 
     foreach ($walked_sets as $walk) {
-      foreach (_islandora_oai_get_membership_array () as $spec) {
+      foreach (_islandora_oai_get_membership_array() as $spec) {
         list($walk_field, $prefix) = $spec;
         $set_fq[] = $walk_field . ':"' . $prefix . $walk . '"';
       }
@@ -692,31 +720,34 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
   try {
     $query_processor->executeQuery();
     $solr_results = $query_processor->islandoraSolrResult['response'];
-  } catch (Exception $e) {
+  }
+  catch (Exception $e) {
     drupal_set_message(t('error searching @message', array('@message' => $e->getMessage())), 'error');
   }
   return $solr_results;
 }
 
 /**
- * Lists Identifiers or Records based on the value of $list_rec
+ * Lists Identifiers or Records based on the value of $list_rec.
  *
- * @param $writer
+ * @param object $writer
  *   The XMLWriter object being passed by reference for constructing our output.
  *
- * @param $args arguments of the Post or Get Request
+ * @param array $args 
+ *   Arguments of the Post or Get Request
  *
- * @param $list_rec
+ * @param bool $list_rec
  *   if FALSE (or not supplied) function will list identifiers
  *   if TRUE function will list records
  */
-function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
+function islandora_oai_list_id_rec(&$writer, $args, $list_rec = FALSE) {
   $query_args = array();
-  $max_records = variable_get('oai2_max_size', '20'); //max records to send in one response
+  // Max records to send in one response.
+  $max_records = variable_get('oai2_max_size', '20');
   $expire_seconds = variable_get('oai2_expire_time', '86400');
   $expire_time = gmstrftime('%Y-%m-%dT%TZ', time() + $expire_seconds);
 
-  //------- handle error and set variables
+  // Handle error and set variables.
   foreach ($args as $key => $val) {
     switch ($key) {
       case 'from':
@@ -727,7 +758,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
           islandora_oai_add_error('badArgument', $key, $val);
           return FALSE;
         }
-        //ensure valid date/time format
+        // Ensure valid date/time format.
         if (_islandora_oai_check_date_format($from)) {
           $from_time = _islandora_oai_datetime_to_time($from);
         }
@@ -745,7 +776,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
           islandora_oai_add_error('badArgument', $key, $val);
           return FALSE;
         }
-        // Ensure valid date/time format
+        // Ensure valid date/time format.
         if (_islandora_oai_check_date_format($until)) {
           $until_time = _islandora_oai_datetime_to_time($until);
         }
@@ -784,7 +815,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
         break;
 
       case 'resumptionToken':
-        //if a resumptionToken is present, we cannot have any other arguments
+        // If a resumptionToken is present, we cannot have any other arguments.
         if (count($args) > 1) {
           islandora_oai_errors('clear');
           islandora_oai_add_error('exclusiveArgument');
@@ -818,13 +849,13 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
       $until = $query_args[1];
     }
   }
-  // Make a new session
+  // Make a new session.
   else {
     $token = new stdClass();
     $token->deliveredrecords = 0;
     $token->extquery = '';
 
-    // Error checking
+    // Error checking.
     if (!isset($metadata_prefix)) {
       islandora_oai_add_error('missingArgument', 'metadataPrefix');
       return FALSE;
@@ -900,7 +931,7 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
 
       $token_xml = islandora_oai_write_token_xml($writer, $num_rows, $token->deliveredrecords, $expire_time, $token_string);
     }
-    // Last delivery, return empty ResumptionToken
+    // Last delivery, return empty ResumptionToken.
     elseif (isset($resumption_token)) {
       $token_xml = islandora_oai_write_token_xml($writer, $num_rows, $token->deliveredrecords);
     }
@@ -915,15 +946,13 @@ function islandora_oai_list_id_rec(&$writer, $args, $list_rec=FALSE) {
 /**
  * Build a record response given a solr record.
  *
- * @param $writer
+ * @param object $writer
  *   The XMLWriter object being passed by reference for constructing our output.
  *
- * @param type $record
+ * @param array $record
  *   Solr response record.
- *
- * @param boolean $full_record
+ * @param bool $full_record
  *   Whether to display one record or not.
- *
  * @param string $metadata_prefix
  *   The metadata prefix we are searching for.
  */
@@ -943,11 +972,11 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
   $writer->writeElement('identifier', 'oai:' . $repo_id . ':' . $identifier);
   $writer->writeElement('datestamp', $date_stamp);
 
-  foreach (_islandora_oai_get_membership_array () as $spec) {
+  foreach (_islandora_oai_get_membership_array() as $spec) {
     list($field, $prefix) = $spec;
 
     if (isset($record[$field])) {
-      // Need to cast to array such that we can check for multiple collections
+      // Need to cast to array such that we can check for multiple collections.
       foreach ((array) $record[$field] as $set) {
         $set = str_replace('info:fedora/', '', $set);
         if (empty($prefix) || (!empty($prefix) && strpos($set, $prefix) === 0)) {
@@ -961,7 +990,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
 
   $writer->endElement();
 
-  // List record values
+  // List record values.
   if ($full_record) {
     $object = islandora_object_load($record['PID']);
 
@@ -983,25 +1012,27 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
 
     if (!empty($content)) {
       $xslt = new XSLTProcessor();
-      $XSL = new DOMDocument();
+      $xls = new DOMDocument();
       switch ($metadata_prefix) {
         case 'oai_dc':
           $file = variable_get('oai2_transform_file_oai_dc', drupal_get_path('module', 'islandora_oai') . '/transforms/mods_to_dc_oai.xsl');
           break;
+
         case 'oai_etdms':
           $file = variable_get('oai2_transform_file_oai_etdms', drupal_get_path('module', 'islandora_oai') . '/transforms/mods_to_etdms.xsl');
           break;
+
         default:
           $file = drupal_get_path('module', 'islandora_oai') . '/transforms/mods_to_dc_oai.xsl';
       }
       if ($file != 'default') {
-        $XSL->load($file);
+        $xls->load($file);
         $input = new DomDocument();
 
         $did_load_ok = $input->loadXML($content);
 
         if ($did_load_ok) {
-          $xslt->importStylesheet($XSL);
+          $xslt->importStylesheet($xls);
           $oai_output = $xslt->transformToXml($input);
         }
       }
@@ -1010,7 +1041,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
       }
     }
 
-    // Transformation fails
+    // Transformation fails.
     if (empty($oai_output) && isset($object[$param])) {
       watchdog('islandora_oai', 'The pid @pidname failed to transform on the @datastream datastream with the file @file.',
           array(
@@ -1019,7 +1050,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
             '@datastream' => $param,
           ), WATCHDOG_ERROR);
     }
-    // Datastream doesn't exist
+    // Datastream doesn't exist.
     elseif (!isset($object[$param])) {
       watchdog('islandora_oai', "The pid @pidname failed to transform on the @datastream datastream as the datastream doesn't exist.",
           array(
@@ -1033,7 +1064,7 @@ function islandora_oai_build_record_response(&$writer, $record, $full_record = F
       $writer->writeRaw($oai_output);
       $writer->endElement();
     }
-    // Close our record
+    // Close our record.
     $writer->endElement();
   }
 }
@@ -1047,7 +1078,7 @@ function _islandora_oai_datetime_to_time($datetime) {
 }
 
 /**
- * Convert datetime dc format to timestmap
+ * Convert datetime dc format to timestamp.
  */
 function _islandora_oai_datetime_to_solr_time($datetime) {
   $granularity = _islandora_oai_get_date_granularity($datetime);
@@ -1055,20 +1086,25 @@ function _islandora_oai_datetime_to_solr_time($datetime) {
   switch ($granularity) {
     case 'YYYY-MM-DD':
       return $datetime . 'T00:00:00Z/DAY';
-      break;
+
     case 'YYYY-MM-DDThh:mm:ssZ':
       return $datetime;
-      break;
+
   }
 }
 
 /**
  * Generate the resumption token given a token string.
  *
- * @param type $num_rows
- * @param type $delivered_records
- * @param type $expire_time
- * @param type $token
+ * @param int $num_rows
+ *   Num of rows
+ * @param array $delivered_records
+ *   Delivered records
+ * @param string $expire_time
+ *   Expire time
+ * @param string $token
+ *   Token
+ *
  * @return string
  *   Return the token XML if the token exists.
  *   If the token does not exist in db, return FALSE.
@@ -1082,7 +1118,7 @@ function islandora_oai_write_token_xml($writer, $num_rows, $delivered_records, $
     $writer->text($token);
     $writer->endElement();
   }
-  // Last delivery, return empty ResumptionToken
+  // Last delivery, return empty ResumptionToken.
   else {
     $writer->startElement('resumptionToken');
     $writer->writeAttribute('completeListSize', $num_rows);
@@ -1095,14 +1131,14 @@ function islandora_oai_write_token_xml($writer, $num_rows, $delivered_records, $
  * Retrieves a resumption token from the db.
  *
  * @param string $resumption_token
+ *   Resumption token
  *
- * @return
- *    Return the token string. If it does not exist return FALSE.
+ * @return string
+ *   Return the token string. If it does not exist return FALSE.
  */
 function islandora_oai_get_token($resumption_token) {
 
-  $token_query = db_query("SELECT * FROM {oai2_tokens} WHERE id= :resumptiontoken LIMIT 0,1", array(':resumptiontoken' => $resumption_token))->fetchObject();
-  ;
+  $token_query = db_query("SELECT * FROM {oai2_tokens} WHERE id= :resumptiontoken LIMIT 0,1", array(':resumptiontoken' => $resumption_token))->fetchObject();;
 
   if ($token_query && $token_query->deliveredrecords) {
     return $token_query;
@@ -1116,10 +1152,10 @@ function islandora_oai_get_token($resumption_token) {
 /**
  * List all the Metadata formats of this repository.
  *
- * @param $writer
+ * @param object $writer
  *   The XMLWriter object being passed by reference for constructing our output.
  *
- * @param $args
+ * @param array $args
  *   Arguments of the $_GET or $_POST request.
  */
 function islandora_oai_list_metadata_formats(&$writer, $args) {
@@ -1196,10 +1232,10 @@ function islandora_oai_list_metadata_formats(&$writer, $args) {
 /**
  * ListSets of this repository implemented as a list of collections.
  *
- * @param $writer
+ * @param object $writer
  *   The XMLWriter object being passed by reference for constructing our output.
  *
- * @param $args
+ * @param array $args
  *   Arguments of the $_POST or the $_GET request.
  */
 function islandora_oai_list_sets($writer, $args) {
@@ -1211,7 +1247,6 @@ function islandora_oai_list_sets($writer, $args) {
         $resumption_token = $val;
         islandora_oai_add_error('badResumptionToken', $key, $val);
         return FALSE;
-        break;
 
       default:
         islandora_oai_add_error('badArgument', $key, $val);
@@ -1279,7 +1314,7 @@ function islandora_oai_list_sets($writer, $args) {
     $setspec = substr($temp, strrpos($temp, '/') + 1);
 
     foreach ($pid_namespaces as $key => $namespace) {
-      // Limit the spec to the namespaces allowed in our Drupal instance
+      // Limit the spec to the namespaces allowed in our Drupal instance.
       if (strpos($setspec, $namespace) === 0) {
         // Logic to print our ListSets only if we have valid records.
         // Will only fire once.
@@ -1300,7 +1335,7 @@ function islandora_oai_list_sets($writer, $args) {
       }
     }
   }
-  // Need to close our ListSets element
+  // Need to close our ListSets element.
   if ($print_list_set) {
     $writer->endElement();
   }
@@ -1310,10 +1345,13 @@ function islandora_oai_list_sets($writer, $args) {
 }
 
 /**
- * Hook that retrieves the default xsl files that ship with the OAI module and
- * scans the specified directory for any files that they have uploaded
+ * Function islandora_oai_get_xls_files.
+ * 
+ * Hook that retrieves the default xsl files that ship with the OAI module
+ * and scans the specified directory for any files that they have uploaded.
  *
  * @return array
+ *   Returns the transformed options
  */
 function islandora_oai_islandora_oai_get_xsl_files() {
   $files = file_scan_directory(drupal_get_path('module', 'islandora_oai') . '/transforms/', '/.*\.xslt?$/');
