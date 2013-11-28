@@ -76,3 +76,13 @@ function islandora_oai_islandora_oai_get_xsl_files() {
   }
   return $transform_options;
 }
+
+
+/**
+ * Implements hook_cron().
+ */
+function islandora_oai_cron() {
+  $expire_seconds = variable_get('islandora_oai_expire_time', '86400');
+  $expire_time = time() - $expire_seconds;
+  db_query("DELETE FROM {islandora_oai_tokens} WHERE timestamp < :expire_time", array(':expire_time' => $expire_time));
+}
