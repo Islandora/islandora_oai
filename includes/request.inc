@@ -503,7 +503,8 @@ function islandora_oai_get_earliest_datetime() {
     $query_results = $object->repository->ri->itqlQuery($itql_query);
     $result = $query_results[0];
     $earliest_datestamp = $result['date']['value'];
-    $earliest_datestamp = drupal_substr($earliest_datestamp, 0, -5) . 'Z';
+    $earliest_datestamp_offset = preg_match('/\.\d{2}Z$/', $earliest_datestamp) ? -4 : -5;
+    $earliest_datestamp = drupal_substr($earliest_datestamp, 0, $earliest_datestamp_offset) . 'Z';
   }
   return $earliest_datestamp;
 }
