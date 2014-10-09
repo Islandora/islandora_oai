@@ -38,9 +38,9 @@ Some example requests are as follows:
 * `*/oai2?verb=GetRecord&metadataPrefix=oai_dc&identifier=PID`
 * `*/oai2?verb=ListRecords&metadataPrefix=oai_dc`
 
-Services like WorldCat expect links back to the object such as a Handle URL. If your metadata doesn't have this there are two approaches that can be used. Self transforming XSLTs can be used to add specific elements tailored to individual needs. However, there is options in configuration to append on URL values to the XML output of OAI. Each metadata prefix has an individual set of configuration. If selected, a user can define where the object URL will get appended in the output returned.
+Services like WorldCat expect links back to the object such as a Handle URL. If your metadata doesn't have this there are two approaches that can be used. Self transforming XSLTs can be used to add specific elements tailored to individual needs. However, there are options in the configuration to append URL values to the XML output of OAI. Each metadata prefix has an individual configuration. If selected, a user can define where the object URL will get appended in the output returned.
 
-Similarily, OCLC's Digital Collection Gateway can take advatange of thumbnail URLs for rendering. This option is only currently available for oai_dc requests. If selected, a URL to the object's thumbnail will be added as a <dc:identifier.thumbnail> if the object has a thumbnail.
+Similarily, OCLC's Digital Collection Gateway can take advatange of thumbnail URLs for rendering. This option is only currently available for oai_dc requests. If this option is selected in the OAI configuration screen, a URL to the object's thumbnail will be added as a <dc:identifier.thumbnail> to objects with thumbnails.
 
 If existing content has already been harvested and/or the url and thumbnail are not mapping in Digital Collection Gateway, you will need to map those manually in the 'Metadata Map' for a given collection/set.
 
