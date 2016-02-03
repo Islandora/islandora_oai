@@ -182,7 +182,7 @@ function islandora_oai_object_response_xml($params) {
         $link_element = $dom->createElementNS($record->record_namespace, "{$record->record_prefix}:{$field}", $object_url);
       }
       else {
-        $link_element = $dom->createElement("$field", $object_url);
+        $link_element = $dom->createElementNS('http://purl.org/dc/elements/1.1/', "$field", $object_url);
       }
       $dom->documentElement->appendChild($link_element);
       $oai_output = $dom->saveXML($dom->documentElement);
