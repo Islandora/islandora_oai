@@ -458,6 +458,8 @@ function islandora_oai_query_solr($start = 0, $field = 'PID', $query = NULL, $se
     $query = $field . ':' . islandora_solr_lesser_escape($query);
   }
   $query_processor->buildQuery($query);
+  // Remove any base search filters.
+  $query_processor->solrParams = islandora_solr_remove_base_filters($query_processor->solrParams);
 
   // Build the fields to return.
   $fl_fields = islandora_oai_get_membership_array();
