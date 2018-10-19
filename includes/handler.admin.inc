@@ -46,6 +46,12 @@ function islandora_oai_handler_configuration_form($form, &$form_state) {
     '#default_value' => variable_get('islandora_oai_content_model_field', 'RELS_EXT_hasModel_uri_ms'),
     '#description' => t("Field which RELS-EXT datastreams use to define an object's content model."),
   );
+  $form['islandora_oai_configuration']['islandora_oai_solr_remove_base_filters'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Remove base Solr filters'),
+    '#description' => t('This option removes your configured Solr base filters from these queries. If you want your filters to be applied even though they could affect which objects are returned in the OAI results, uncheck this option.'),
+    '#default_value' => variable_get('islandora_oai_solr_remove_base_filters', FALSE),
+  );
   $form['islandora_oai_configuration']['islandora_oai_exclude_content_models'] = array(
     '#type' => 'textarea',
     '#title' => t('Excluded Content Models'),
@@ -273,6 +279,7 @@ function islandora_oai_handler_configuration_form_submit($form, &$form_state) {
   variable_set('islandora_oai_date_field', $form_state['values']['islandora_oai_configuration']['islandora_oai_date_field']);
   variable_set('islandora_oai_exclude_islandora_namespace', $form_state['values']['islandora_oai_configuration']['islandora_oai_exclude_islandora_namespace']);
   variable_set('islandora_oai_append_dc_thumbnail', $form_state['values']['islandora_oai_configuration']['islandora_oai_append_dc_thumbnail']);
+  variable_set('islandora_oai_solr_remove_base_filters', $form_state['values']['islandora_oai_configuration']['islandora_oai_solr_remove_base_filters']);
   // Loop through our transform options.
   foreach ($form_state['values']['islandora_oai_metadata']['islandora_oai_options'] as $key => $value) {
     variable_set($key, $value);
