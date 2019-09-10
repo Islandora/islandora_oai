@@ -88,7 +88,6 @@ function islandora_oai_handler_configuration_form(array $form, array &$form_stat
     $metadata_format_options[$row->name] = drupal_strtoupper($row->name);
     $metadata_formats[$row->name] = $row;
   }
-
   $form['islandora_oai_metadata'] = array(
     '#type' => 'fieldset',
     '#title' => t('Metadata Format'),
@@ -114,8 +113,8 @@ function islandora_oai_handler_configuration_form(array $form, array &$form_stat
   $transform_options = array_merge($transform_options, $oai_invoke_files);
 
   foreach ($metadata_formats as $format) {
-    $default_transform = variable_get("islandora_oai_transform_file_$format->name", 'default');
-    $default_self_transform = variable_get("islandora_oai_self_transform_file_$format->name", 'default');
+    $default_transform = variable_get("islandora_oai_transform_file_$format->metadata_prefix", 'default');
+    $default_self_transform = variable_get("islandora_oai_self_transform_file_$format->metadata_prefix", 'default');
     $form['islandora_oai_metadata'][$format->name]['islandora_oai_metadata_prefix'] = array(
       '#type' => 'item',
       '#title' => t('Metadata Prefix'),
